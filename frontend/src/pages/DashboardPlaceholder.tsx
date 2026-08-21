@@ -72,21 +72,30 @@ export const DashboardPlaceholder: React.FC = () => {
           <div style={styles.card}>
             <div style={styles.cardHeader}>
               <Server size={20} color="#818cf8" style={{ marginRight: 8 }} />
-              <h2 style={styles.cardTitle}>Phase 2 Modules</h2>
+              <h2 style={styles.cardTitle}>ERP Modules</h2>
             </div>
             <p style={styles.cardDescription}>
-              Access real-time stock control, schedule work orders, or manage internal warehouse transfers.
+              Select an authorized platform module to manage tasks, inventory, transfers, or orders.
             </p>
             <div style={styles.testBtnGroup}>
-              <button onClick={() => navigate('/inventory')} style={styles.moduleBtn}>
-                Inventory Control
-              </button>
-              <button onClick={() => navigate('/work-orders')} style={styles.moduleBtn}>
-                Work Orders
-              </button>
-              <button onClick={() => navigate('/transfers')} style={styles.moduleBtn}>
-                Internal Stock Transfers
-              </button>
+              {(user?.role === 'ADMIN' || user?.role === 'OPERATIONS') && (
+                <>
+                  <button onClick={() => navigate('/inventory')} style={styles.moduleBtn}>
+                    Inventory Control
+                  </button>
+                  <button onClick={() => navigate('/work-orders')} style={styles.moduleBtn}>
+                    Work Orders
+                  </button>
+                  <button onClick={() => navigate('/transfers')} style={styles.moduleBtn}>
+                    Internal Stock Transfers
+                  </button>
+                </>
+              )}
+              {(user?.role === 'ADMIN' || user?.role === 'SALES') && (
+                <button onClick={() => navigate('/orders')} style={styles.moduleBtn}>
+                  Customer Orders
+                </button>
+              )}
             </div>
           </div>
 

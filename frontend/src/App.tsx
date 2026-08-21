@@ -6,6 +6,7 @@ import DashboardPlaceholder from './pages/DashboardPlaceholder';
 import Inventory from './pages/Inventory';
 import WorkOrders from './pages/WorkOrders';
 import Transfers from './pages/Transfers';
+import Orders from './pages/Orders';
 
 export const App: React.FC = () => {
   return (
@@ -41,6 +42,14 @@ export const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <Transfers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <Orders />
             </ProtectedRoute>
           }
         />

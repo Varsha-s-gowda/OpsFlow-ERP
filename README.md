@@ -6,8 +6,8 @@ OpsFlow ERP is a production-oriented, full-stack Operations Enterprise Resource 
 ---
 
 ## Current Phase
-**Phase 2 — Core Logistics: Inventory, Work Orders & Stock Transfers**
-This phase implements real-time inventory management, shortage calculations, transaction-safe internal stock transfers with Row-Level Locking, work order lifecycle management, backend role verification (RBAC), React screens, and Jest integration tests.
+**Phase 3 — Customer Orders, Atomicity & Concurrency-Safe Stock Reservation**
+This phase implements customer order workflows with multi-item Zod validation, atomic database transactions (`$transaction`), PostgreSQL-level row adjustments, concurrency protection preventing race conditions on inventory reservation, and role restrictions for `SALES` and `ADMIN`.
 
 ---
 
@@ -30,20 +30,20 @@ opsflow-erp/
 │   │   └── seed.ts         # Idempotent Database Seeding
 │   ├── src/
 │   │   ├── config/         # Environment Validator (Zod)
-│   │   ├── controllers/    # Auth, Inventory, Work Order & Transfer Handlers
+│   │   ├── controllers/    # Auth, Inventory, Work Order, Transfer & Order Handlers
 │   │   ├── middleware/     # Auth, RBAC & Error Handlers
 │   │   ├── routes/         # Router mounts
 │   │   ├── services/       # Prisma DB connection, Inventory business logic
 │   │   ├── types/          # Custom TypeScript declarations
 │   │   ├── validators/     # Zod Schemas
 │   │   └── app.ts          # Express App configuration
-│   ├── tests/              # Jest/Supertest Integrations (auth, phase2)
+│   ├── tests/              # Jest/Supertest Integrations (auth, phase2, phase3)
 │   ├── package.json
 │   └── tsconfig.json
 ├── frontend/
 │   ├── src/
 │   │   ├── components/     # ProtectedRoute Guard
-│   │   ├── pages/          # Login, Dashboard, Inventory, Work Orders, Transfers
+│   │   ├── pages/          # Login, Dashboard, Inventory, Work Orders, Transfers, Orders
 │   │   ├── services/       # API Clients
 │   │   ├── App.tsx         # Router
 │   │   └── main.tsx        # Entrypoint
@@ -66,7 +66,7 @@ opsflow-erp/
 ### Backend (`backend/.env`)
 Create a `.env` file in the `backend/` directory matching the following configuration:
 ```env
-DATABASE_URL="postgresql://<user>:<password>@<host>:<port>/<dbname>?sslmode=require"
+DATABASE_URL="postgresql://neondb_owner:npg_lzBJYM02HCUd@ep-bold-darkness-azsrfoxm.c-3.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 JWT_SECRET="super-secret-key-opsflow-erp-2026-phase-1"
 JWT_EXPIRES_IN="1d"
 PORT=5000
@@ -171,3 +171,26 @@ All users share the same development password: `OpsFlow@123`
 - `POST /api/transfers` - Create a transfer request (requires source/destination diff, quantity > 0)
 - `PATCH /api/transfers/:id/dispatch` - Dispatch transfer: Decreases source stock in a Prisma database transaction with Row Locking.
 - `PATCH /api/transfers/:id/receive` - Receive transfer: Increases destination stock in a database transaction. Protects against duplicate receipt.
+
+### Phase 3 Customer Orders & Stock Reservation
+
+#### 1. Customer Orders (SALES to create, ADMIN / SALES to view)
+- `GET /api/orders` - List all customer orders with creator and items details
+- `GET /api/orders/:id` - Get details of a specific customer order
+- `POST /api/orders` - Submit a customer order draft and atomically reserve required stock
+
+#### 2. Concurrency-Safe Stock Reservation Design
+- **Atomicity**: The stock allocation, Zod validation checking, item normalization, and order records insertion happen in a single, rollback-safe Prisma database transaction (`$transaction`). If any item stock reservation fails, everything rolls back.
+- **Race Condition Protection**: We use atomic SQL updates directly at the database level:
+  `UPDATE "Inventory" SET "reservedQuantity" = "reservedQuantity" + $1 WHERE "id" = $2 AND "reservedQuantity" + $1 <= "physicalQuantity"`
+  Ensuring exactly 1 row was updated. If multiple concurrent requests trigger, the database guarantees that `reservedQuantity` never exceeds `physicalQuantity`, returning HTTP 409 Conflict if stock is insufficient.
+- **Deadlock Prevention**: Payload items are sorted by `itemId` before acquiring updates, ensuring a deterministic lock acquisition sequence.
+- **Role Permissions (RBAC)**: Enforced backend security restricts customer order creation solely to `SALES` users. Only `ADMIN` and `SALES` can view orders. `OPERATIONS` access is blocked.
+
+#### 3. Available Quantity Formula
+- The available quantity is computed in the backend as:
+  `availableQuantity = physicalQuantity - reservedQuantity`
+- Customer orders *only* increase the `reservedQuantity` without altering `physicalQuantity` (until full dispatch is triggered in later phases). No partial allocations are permitted.
+- Available stock checks are calculated dynamically from the database.
+- Cancellation release releases reserved quantity properly in transactions (if implemented). In this phase, cancellation releases are kept in the status foundation.
+- Full testing suites run concurrent requests using `Promise.all` to verify that concurrent order requests exceeding available stock fail gracefully with exactly one success and one 409 conflict.

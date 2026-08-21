@@ -250,5 +250,40 @@ export const api = {
     if (!res.ok) throw new Error(data.message || 'Failed to receive transfer');
     return data;
   },
+
+  async getOrders(): Promise<{ success: boolean; data: any[] }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to fetch customer orders');
+    return data;
+  },
+
+  async createOrder(payload: any): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/orders`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create customer order');
+    return data;
+  },
+
+  async getOrderById(id: string): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/orders/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to fetch customer order details');
+    return data;
+  },
 };
 export default api;
