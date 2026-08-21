@@ -163,6 +163,24 @@ describe('Phase 2 - Inventory, Work Orders, and Transfers Tests', () => {
       expect(res.body.data.availableQuantity).toBe(70);
       expect(res.body.data.shortage).toBe(30);
     });
+
+    it('3b. Work-order shortage calculated correctly (no shortage case)', async () => {
+      // availableQuantity is 70. Request 50. Shortage should be 0.
+      const res = await request(app)
+        .post('/api/work-orders')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          workOrderId: `WO-NOSHORT-${Date.now()}`,
+          locationId: testLocationSource.id,
+          itemId: testItem.id,
+          requiredQuantity: 50,
+          assignedUserId: testUser.id,
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.data.availableQuantity).toBe(70);
+      expect(res.body.data.shortage).toBe(0);
+    });
   });
 
   describe('Internal Transfers and Transactions', () => {
