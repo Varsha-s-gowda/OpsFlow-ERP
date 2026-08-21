@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Server, ArrowLeft, Plus, ShieldAlert } from 'lucide-react';
+import { Plus, ShieldAlert, Search, ArrowRight, Check } from 'lucide-react';
 import api, { User } from '../services/api';
+import ERPLayout from '../components/ERPLayout';
 
 export const Transfers: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -12,6 +12,10 @@ export const Transfers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // Form State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -59,10 +63,10 @@ export const Transfers: React.FC = () => {
         sourceLocationId,
         destinationLocationId,
         itemId: selectedItemId,
-        batchId: selectedBatchId || undefined,
+        batchId: selectedBatchId || null,
         quantity: Number(quantity),
       });
-      setSuccess('Stock transfer requested successfully!');
+      setSuccess('Transfer request created successfully!');
       setShowAddForm(false);
       // Reset form
       setTransferId('');
@@ -73,7 +77,7 @@ export const Transfers: React.FC = () => {
       setQuantity(1);
       fetchAllData();
     } catch (err: any) {
-      setError(err.message || 'Failed to request stock transfer');
+      setError(err.message || 'Failed to create transfer request');
     }
   };
 
@@ -82,7 +86,7 @@ export const Transfers: React.FC = () => {
     setSuccess('');
     try {
       await api.dispatchTransfer(id);
-      setSuccess('Transfer successfully dispatched. Source inventory decreased.');
+      setSuccess('Transfer dispatched successfully! Source inventory decreased.');
       fetchAllData();
     } catch (err: any) {
       setError(err.message || 'Failed to dispatch transfer');
@@ -94,7 +98,7 @@ export const Transfers: React.FC = () => {
     setSuccess('');
     try {
       await api.receiveTransfer(id);
-      setSuccess('Transfer successfully received. Destination inventory increased.');
+      setSuccess('Transfer received successfully! Destination inventory increased.');
       fetchAllData();
     } catch (err: any) {
       setError(err.message || 'Failed to receive transfer');
@@ -111,29 +115,29 @@ export const Transfers: React.FC = () => {
 
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'OPERATIONS';
 
-  return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerBrand}>
-          <Link to="/" style={styles.backLink}>
-            <ArrowLeft size={18} style={{ marginRight: 8 }} />
-            Dashboard
-          </Link>
-          <Server size={24} color="#818cf8" style={{ marginRight: 10, marginLeft: 20 }} />
-          <span style={styles.brandText}>OpsFlow ERP</span>
-          <span style={styles.badge}>Internal Transfers</span>
-        </div>
-        <div style={styles.userRole}>
-          Role: <strong style={{ color: '#818cf8', marginLeft: 4 }}>{user?.role}</strong>
-        </div>
-      </header>
+  // Apply filters
+  const filteredTransfers = transfers.filter((tr) => {
+    const matchesSearch =
+      !searchTerm ||
+      tr.transferId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      tr.item?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-      <main style={styles.main}>
+    const matchesStatus = !filterStatus || tr.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <ERPLayout pageTitle="Internal Stock Transfers">
+      <div style={styles.viewContainer}>
+        {/* Title Row */}
         <div style={styles.titleRow}>
-          <h1 style={styles.title}>Internal Stock Transfers</h1>
+          <div>
+            <p style={styles.subtitleText}>Request and process internal warehouse logistics transfers.</p>
+          </div>
           {isAuthorized && !showAddForm && (
             <button onClick={() => setShowAddForm(true)} style={styles.primaryBtn}>
-              <Plus size={16} style={{ marginRight: 6 }} /> Request Transfer
+              <Plus size={16} style={{ marginRight: 6 }} /> Create Transfer
             </button>
           )}
         </div>
@@ -144,66 +148,69 @@ export const Transfers: React.FC = () => {
         {!isAuthorized && (
           <div style={styles.warningBox}>
             <ShieldAlert size={20} style={{ marginRight: 10 }} />
-            Your current role does not have authorization to request or process stock transfers.
+            Your current role does not have authorization to request or adjust transfers.
           </div>
         )}
 
-        {/* Create Transfer Request Form */}
-        {showAddForm && (
+        {/* Filter Toolbar */}
+        <div style={styles.toolbar}>
+          <div style={styles.searchBox}>
+            <Search size={18} color="#64748b" style={{ marginRight: 8 }} />
+            <input
+              type="text"
+              placeholder="Search by Transfer ID or Item..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
+
+          <div style={styles.filterGroup}>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={styles.filterSelect}
+            >
+              <option value="">All Statuses</option>
+              <option value="REQUESTED">Requested</option>
+              <option value="DISPATCHED">Dispatched</option>
+              <option value="RECEIVED">Received</option>
+            </select>
+
+            {(searchTerm || filterStatus) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterStatus('');
+                }}
+                style={styles.clearBtn}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Create Transfer Form */}
+        {isAuthorized && showAddForm && (
           <div style={styles.formCard}>
-            <h2 style={styles.cardTitle}>New Transfer Request</h2>
+            <h3 style={styles.cardTitle}>New Transfer Order Request</h3>
             <form onSubmit={handleCreateTransfer} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Transfer ID (Unique String)</label>
-                <input
-                  type="text"
-                  placeholder="e.g., TR-2026-001"
-                  value={transferId}
-                  onChange={(e) => setTransferId(e.target.value)}
-                  style={styles.input}
-                  required
-                />
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Source Location</label>
-                  <select
-                    value={sourceLocationId}
-                    onChange={(e) => setSourceLocationId(e.target.value)}
-                    style={styles.select}
+              <div style={styles.formGrid}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Transfer ID (Unique identifier)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., TR-1001"
+                    value={transferId}
+                    onChange={(e) => setTransferId(e.target.value)}
+                    style={styles.input}
                     required
-                  >
-                    <option value="">-- Choose Source --</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} ({loc.code})
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Destination Location</label>
-                  <select
-                    value={destinationLocationId}
-                    onChange={(e) => setDestinationLocationId(e.target.value)}
-                    style={styles.select}
-                    required
-                  >
-                    <option value="">-- Choose Destination --</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name} ({loc.code})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={styles.formRow}>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Item</label>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Select Item</label>
                   <select
                     value={selectedItemId}
                     onChange={(e) => setSelectedItemId(e.target.value)}
@@ -219,14 +226,14 @@ export const Transfers: React.FC = () => {
                   </select>
                 </div>
 
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Batch (Optional)</label>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Select Batch</label>
                   <select
                     value={selectedBatchId}
                     onChange={(e) => setSelectedBatchId(e.target.value)}
                     style={styles.select}
                   >
-                    <option value="">-- Select Specific Batch --</option>
+                    <option value="">-- Choose Batch (Optional) --</option>
                     {batches
                       .filter((b) => !selectedItemId || b.itemId === selectedItemId)
                       .map((batch) => (
@@ -238,26 +245,58 @@ export const Transfers: React.FC = () => {
                 </div>
               </div>
 
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Quantity to Transfer</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={quantity}
-                  onChange={(e) => setQuantity(Number(e.target.value))}
-                  style={styles.input}
-                  required
-                />
+              <div style={styles.formGrid}>
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Source Warehouse</label>
+                  <select
+                    value={sourceLocationId}
+                    onChange={(e) => setSourceLocationId(e.target.value)}
+                    style={styles.select}
+                    required
+                  >
+                    <option value="">-- Choose Source --</option>
+                    {locations.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Destination Warehouse</label>
+                  <select
+                    value={destinationLocationId}
+                    onChange={(e) => setDestinationLocationId(e.target.value)}
+                    style={styles.select}
+                    required
+                  >
+                    <option value="">-- Choose Destination --</option>
+                    {locations.map((l) => (
+                      <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={styles.formGroup}>
+                  <label style={styles.label}>Quantity to Transfer</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(Number(e.target.value))}
+                    style={styles.input}
+                    required
+                  />
+                </div>
               </div>
 
               <div style={styles.btnRow}>
-                <button type="submit" style={styles.primaryBtn}>
-                  Request Transfer
+                <button type="submit" style={styles.submitBtn}>
+                  Save Transfer Order
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
-                  style={styles.secondaryBtn}
+                  style={styles.cancelBtn}
                 >
                   Cancel
                 </button>
@@ -266,11 +305,12 @@ export const Transfers: React.FC = () => {
           </div>
         )}
 
-        {/* Transfers List */}
+        {/* Ledger Panel */}
         <div style={styles.card}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '20px' }}>Active Transfers Ledger</h2>
-          {transfers.length === 0 ? (
-            <p style={styles.emptyText}>No transfers scheduled.</p>
+          {filteredTransfers.length === 0 ? (
+            <div style={styles.emptyContainer}>
+              <p style={styles.emptyText}>No transfers matching the criteria.</p>
+            </div>
           ) : (
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
@@ -278,68 +318,84 @@ export const Transfers: React.FC = () => {
                   <tr>
                     <th style={styles.th}>Transfer ID</th>
                     <th style={styles.th}>Item</th>
-                    <th style={styles.th}>Source</th>
-                    <th style={styles.th}>Destination</th>
-                    <th style={styles.th}>Batch Context</th>
-                    <th style={styles.th}>Qty</th>
-                    <th style={styles.th}>Status</th>
-                    {isAuthorized && <th style={styles.th}>Actions</th>}
+                    <th style={styles.th}>Route</th>
+                    <th style={styles.thRight}>Quantity</th>
+                    <th style={styles.th}>Progress Lifecycle</th>
+                    <th style={styles.thRight}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transfers.map((tr) => {
-                    const statusColor =
-                      tr.status === 'RECEIVED'
-                        ? '#4ade80'
-                        : tr.status === 'DISPATCHED'
-                        ? '#fbbf24'
-                        : '#6366f1';
+                  {filteredTransfers.map((tr) => {
+
                     return (
                       <tr key={tr.id} style={styles.tr}>
-                        <td style={styles.tdId}>{tr.transferId}</td>
+                        <td style={styles.tdBold}>{tr.transferId}</td>
                         <td style={styles.td}>{tr.item?.name}</td>
-                        <td style={styles.td}>{tr.sourceLocation?.name}</td>
-                        <td style={styles.td}>{tr.destinationLocation?.name}</td>
-                        <td style={styles.tdBatch}>{tr.batch?.batchNumber || 'Auto-allocated'}</td>
-                        <td style={styles.td}>{tr.quantity}</td>
                         <td style={styles.td}>
-                          <span
-                            style={{
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              backgroundColor: `${statusColor}1A`,
-                              border: `1px solid ${statusColor}4D`,
-                              color: statusColor,
-                              fontSize: '12px',
-                              fontWeight: '600',
-                            }}
-                          >
-                            {tr.status}
-                          </span>
+                          <div style={styles.routeContainer}>
+                            <span>{tr.sourceLocation?.name}</span>
+                            <ArrowRight size={14} color="#64748b" style={{ margin: '0 8px' }} />
+                            <span>{tr.destinationLocation?.name}</span>
+                          </div>
                         </td>
-                        {isAuthorized && (
-                          <td style={styles.td}>
-                            {tr.status === 'REQUESTED' && (
+                        <td style={styles.tdQty}>{tr.quantity}</td>
+                        <td style={styles.td}>
+                          <div style={styles.lifecycleLine}>
+                            <span
+                              style={{
+                                color: tr.status === 'REQUESTED' ? '#818cf8' : '#64748b',
+                                fontWeight: tr.status === 'REQUESTED' ? '700' : '500',
+                              }}
+                            >
+                              Requested
+                            </span>
+                            <span style={styles.lifecycleSeparator}>&rarr;</span>
+                            <span
+                              style={{
+                                color: tr.status === 'DISPATCHED' ? '#fbbf24' : '#64748b',
+                                fontWeight: tr.status === 'DISPATCHED' ? '700' : '500',
+                              }}
+                            >
+                              Dispatched
+                            </span>
+                            <span style={styles.lifecycleSeparator}>&rarr;</span>
+                            <span
+                              style={{
+                                color: tr.status === 'RECEIVED' ? '#10b981' : '#64748b',
+                                fontWeight: tr.status === 'RECEIVED' ? '700' : '500',
+                              }}
+                            >
+                              Received
+                            </span>
+                          </div>
+                        </td>
+                        <td style={styles.tdRight}>
+                          <div style={styles.actionGroup}>
+                            {isAuthorized && tr.status === 'REQUESTED' && (
                               <button
+                                className="dispatch-btn-hover"
                                 onClick={() => handleDispatch(tr.id)}
-                                style={{ ...styles.actionBtn, borderColor: '#fbbf24', color: '#fbbf24' }}
+                                style={styles.dispatchBtn}
                               >
                                 Dispatch
                               </button>
                             )}
-                            {tr.status === 'DISPATCHED' && (
+                            {isAuthorized && tr.status === 'DISPATCHED' && (
                               <button
+                                className="receive-btn-hover"
                                 onClick={() => handleReceive(tr.id)}
-                                style={{ ...styles.actionBtn, borderColor: '#4ade80', color: '#4ade80' }}
+                                style={styles.receiveBtn}
                               >
                                 Receive
                               </button>
                             )}
                             {tr.status === 'RECEIVED' && (
-                              <span style={{ fontSize: '12px', color: '#94a3b8' }}>Archived</span>
+                              <span style={styles.receivedLabel}>
+                                <Check size={14} style={{ marginRight: 4 }} /> Received
+                              </span>
                             )}
-                          </td>
-                        )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
@@ -348,200 +404,294 @@ export const Transfers: React.FC = () => {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </ERPLayout>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#090a0f',
-    color: '#f8fafc',
-    fontFamily: '"Outfit", "Inter", system-ui, sans-serif',
-  },
   loadingContainer: {
     minHeight: '100vh',
-    backgroundColor: '#090a0f',
+    backgroundColor: '#f8fafc',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    height: '70px',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+  viewContainer: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 32px',
-    backdropFilter: 'blur(10px)',
-  },
-  headerBrand: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  brandText: {
-    fontSize: '18px',
-    fontWeight: '700',
-    letterSpacing: '-0.5px',
-    marginRight: '12px',
-  },
-  badge: {
-    fontSize: '11px',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
-    color: '#a5b4fc',
-    padding: '3px 8px',
-    borderRadius: '10px',
-    fontWeight: '600',
-  },
-  backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    color: '#94a3b8',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-  userRole: {
-    fontSize: '13px',
-    color: '#cbd5e1',
-  },
-  main: {
-    padding: '40px 32px',
-    maxWidth: '1200px',
-    margin: '0 auto',
+    flexDirection: 'column',
+    gap: '24px'
   },
   titleRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '32px',
+    gap: '16px'
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '800',
-    margin: 0,
-    background: 'linear-gradient(to right, #ffffff, #94a3b8)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+  subtitleText: {
+    fontSize: '13px',
+    color: '#64748b',
+    margin: 0
+  },
+  toolbar: {
+    backgroundcolor: '#1e293b',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '10px',
+    padding: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    flexWrap: 'wrap'
+  },
+  searchBox: {
+    flex: 1,
+    minWidth: '260px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '0 12px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  searchInput: {
+    flex: 1,
+    background: 'none',
+    border: 'none',
+    color: '#1e293b',
+    padding: '10px 0',
+    fontSize: '13px',
+    outline: 'none'
+  },
+  filterGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    flexWrap: 'wrap'
+  },
+  filterSelect: {
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '8px',
+    color: '#374151',
+    padding: '10px 16px',
+    fontSize: '13px',
+    outline: 'none',
+    cursor: 'pointer'
+  },
+  clearBtn: {
+    backgroundColor: 'transparent',
+    border: '1px solid #fecaca',
+    color: '#dc2626',
+    borderRadius: '8px',
+    padding: '10px 16px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  primaryBtn: {
+    backgroundColor: '#3b5bdb',
+    border: 'none',
+    color: '#1e293b',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center'
   },
   card: {
-    background: 'rgba(15, 23, 42, 0.4)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
+    backgroundcolor: '#1e293b',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '12px',
+    padding: '24px'
   },
   cardTitle: {
-    fontSize: '18px',
+    fontSize: '15px',
     fontWeight: '700',
-    margin: '0 0 10px 0',
+    margin: '0 0 20px 0',
+    color: '#1e293b'
   },
   formCard: {
-    background: 'rgba(99, 102, 241, 0.04)',
-    border: '1px solid rgba(99, 102, 241, 0.2)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
+    backgroundColor: '#fff',
+    border: '1.5px solid #bfdbfe',
+    borderRadius: '12px',
+    padding: '24px'
   },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
+  formGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
     gap: '20px',
+    marginBottom: '20px'
   },
   formGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
-  },
-  formRow: {
-    display: 'flex',
-    gap: '20px',
-  },
-  formGroupHalf: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+    gap: '6px'
   },
   label: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#64748b'
   },
   select: {
-    padding: '12px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
     borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
+    color: '#1e293b',
+    padding: '10px 12px',
+    fontSize: '13px',
+    outline: 'none'
   },
   input: {
-    padding: '12px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
     borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
-  },
-  primaryBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '12px 24px',
-    backgroundColor: '#6366f1',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#ffffff',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  secondaryBtn: {
-    padding: '12px 24px',
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '8px',
-    color: '#cbd5e1',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
+    color: '#1e293b',
+    padding: '10px 12px',
+    fontSize: '13px',
+    outline: 'none'
   },
   btnRow: {
     display: 'flex',
-    gap: '12px',
+    gap: '12px'
   },
-  actionBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '4px 10px',
-    backgroundColor: 'transparent',
-    border: '1px solid',
-    borderRadius: '6px',
-    fontSize: '12px',
+  submitBtn: {
+    backgroundColor: '#3b5bdb',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#1e293b',
+    padding: '10px 20px',
+    fontSize: '13px',
     fontWeight: '600',
-    cursor: 'pointer',
+    cursor: 'pointer'
+  },
+  cancelBtn: {
+    backgroundColor: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: '8px',
+    color: '#64748b',
+    padding: '10px 20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer'
   },
   errorBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#f87171',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #fecaca',
+    color: '#dc2626',
     borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    padding: '12px 16px',
+    fontSize: '13px'
   },
   successBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    border: '1px solid rgba(34, 197, 94, 0.2)',
-    color: '#4ade80',
+    backgroundColor: '#dcfce7',
+    border: '1px solid #bbf7d0',
+    color: '#16a34a',
     borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    padding: '12px 16px',
+    fontSize: '13px'
+  },
+  emptyContainer: {
+    padding: '40px 0',
+    textAlign: 'center'
+  },
+  emptyText: {
+    color: '#64748b',
+    fontSize: '13px',
+    margin: 0
+  },
+  tableWrapper: {
+    overflowX: 'auto'
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+    textAlign: 'left',
+    fontSize: '13px'
+  },
+  th: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#64748b',
+    fontWeight: '600'
+  },
+  thRight: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#64748b',
+    fontWeight: '600',
+    textAlign: 'right'
+  },
+  tr: {
+    borderBottom: '1px solid #f8fafc',
+  },
+  td: {
+    padding: '12px 16px'
+  },
+  tdRight: {
+    padding: '12px 16px',
+    textAlign: 'right'
+  },
+  tdBold: {
+    padding: '12px 16px',
+    fontWeight: '600',
+    color: '#1e293b'
+  },
+  tdQty: {
+    padding: '12px 16px',
+    textAlign: 'right',
+    color: '#374151',
+    fontWeight: '600'
+  },
+  routeContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    color: '#374151',
+    fontSize: '12px'
+  },
+  lifecycleLine: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    fontSize: '12px'
+  },
+  lifecycleSeparator: {
+    color: '#334155'
+  },
+  actionGroup: {
+    display: 'flex',
+    justifyContent: 'flex-end'
+  },
+  dispatchBtn: {
+    backgroundColor: 'rgba(251, 191, 36, 0.08)',
+    border: '1px solid rgba(251, 191, 36, 0.2)',
+    color: '#fbbf24',
+    padding: '6px 14px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  receiveBtn: {
+    backgroundColor: '#dcfce7',
+    border: '1px solid #bbf7d0',
+    color: '#16a34a',
+    padding: '6px 14px',
+    borderRadius: '6px',
+    fontSize: '12px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  },
+  receivedLabel: {
+    color: '#10b981',
+    fontSize: '12px',
+    fontWeight: '600',
+    display: 'inline-flex',
+    alignItems: 'center'
   },
   warningBox: {
     display: 'flex',
@@ -553,41 +703,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '8px',
     marginBottom: '24px',
     fontSize: '14px',
-  },
-  emptyText: {
-    color: '#94a3b8',
-    fontSize: '14px',
-  },
-  tableWrapper: {
-    overflowX: 'auto',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    textAlign: 'left',
-    fontSize: '14px',
-  },
-  th: {
-    padding: '16px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
-    fontWeight: '600',
-  },
-  tr: {
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
-  },
-  td: {
-    padding: '16px',
-  },
-  tdId: {
-    padding: '16px',
-    fontWeight: '600',
-    color: '#818cf8',
-  },
-  tdBatch: {
-    padding: '16px',
-    color: '#a5b4fc',
-    fontStyle: 'italic',
-  },
+  }
 };
 export default Transfers;
+

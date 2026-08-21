@@ -3,13 +3,13 @@ import prisma from '../services/db';
 
 export const createOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
     // Only SALES user can create customer orders
-    if (req.user.role !== 'SALES') {
+    if ((req as any).user.role !== 'SALES') {
       res.status(403).json({ success: false, message: 'Forbidden: Only SALES role can create orders' });
       return;
     }
@@ -96,7 +96,7 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       const order = await tx.customerOrder.create({
         data: {
           orderId,
-          createdByUserId: req.user!.id,
+          createdByUserId: (req as any).user.id,
           status: 'CONFIRMED',
         },
       });
@@ -159,12 +159,12 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
 
 export const listOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
-    if (req.user.role !== 'SALES' && req.user.role !== 'ADMIN') {
+    if ((req as any).user.role !== 'SALES' && (req as any).user.role !== 'ADMIN') {
       res.status(403).json({ success: false, message: 'Forbidden: Access denied' });
       return;
     }
@@ -205,12 +205,12 @@ export const listOrders = async (req: Request, res: Response, next: NextFunction
 
 export const getOrderById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
-    if (req.user.role !== 'SALES' && req.user.role !== 'ADMIN') {
+    if ((req as any).user.role !== 'SALES' && (req as any).user.role !== 'ADMIN') {
       res.status(403).json({ success: false, message: 'Forbidden: Access denied' });
       return;
     }

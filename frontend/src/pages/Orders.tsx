@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, ShoppingBag, ShieldAlert } from 'lucide-react';
+import { Plus, Trash2, ShieldAlert, Search } from 'lucide-react';
 import api, { User } from '../services/api';
+import ERPLayout from '../components/ERPLayout';
 
 interface DraftItem {
   itemId: string;
@@ -13,9 +13,13 @@ export const Orders: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [inventory, setInventory] = useState<any[]>([]); // For live stock summary checks
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Search & Filter State
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Form & Draft Order State
   const [showAddForm, setShowAddForm] = useState(false);
@@ -29,13 +33,15 @@ export const Orders: React.FC = () => {
       const profile = await api.getMe();
       setUser(profile.data.user);
 
-      const [ordersRes, itemsRes] = await Promise.all([
+      const [ordersRes, itemsRes, invRes] = await Promise.all([
         api.getOrders(),
         api.getItems(),
+        api.getInventory()
       ]);
 
       setOrders(ordersRes.data || []);
       setItems(itemsRes.data || []);
+      setInventory(invRes.data || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load customer orders data');
     } finally {
@@ -125,45 +131,32 @@ export const Orders: React.FC = () => {
   const isSales = user?.role === 'SALES';
   const isAuthorizedToView = user?.role === 'SALES' || user?.role === 'ADMIN';
 
-  if (!isAuthorizedToView) {
-    return (
-      <div style={styles.container}>
-        <header style={styles.header}>
-          <Link to="/" style={styles.backLink}>
-            <ArrowLeft size={18} style={{ marginRight: 8 }} />
-            Dashboard
-          </Link>
-        </header>
-        <main style={styles.main}>
-          <div style={styles.warningBox}>
-            <ShieldAlert size={20} style={{ marginRight: 10 }} />
-            Your current role does not have authorization to view customer orders.
-          </div>
-        </main>
-      </div>
-    );
-  }
+  // Live stock pool calculation for selected item
+  const selectedItemInv = inventory.filter((inv) => inv.itemId === selectedItemId);
+  const totalAvailable = selectedItemInv.reduce(
+    (sum, inv) => sum + (inv.physicalQuantity - inv.reservedQuantity),
+    0
+  );
+  const exceedsStock = quantity > totalAvailable;
+
+  // Apply filters
+  const filteredOrders = orders.filter((o) => {
+    const matchesSearch =
+      !searchTerm ||
+      o.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.items?.some((it: any) => it.itemName.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    return matchesSearch;
+  });
 
   return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerBrand}>
-          <Link to="/" style={styles.backLink}>
-            <ArrowLeft size={18} style={{ marginRight: 8 }} />
-            Dashboard
-          </Link>
-          <ShoppingBag size={24} color="#818cf8" style={{ marginRight: 10, marginLeft: 20 }} />
-          <span style={styles.brandText}>OpsFlow ERP</span>
-          <span style={styles.badge}>Customer Orders</span>
-        </div>
-        <div style={styles.userRole}>
-          Role: <strong style={{ color: '#818cf8', marginLeft: 4 }}>{user?.role}</strong>
-        </div>
-      </header>
-
-      <main style={styles.main}>
+    <ERPLayout pageTitle="Customer Orders & Reservations">
+      <div style={styles.viewContainer}>
+        {/* Title Row */}
         <div style={styles.titleRow}>
-          <h1 style={styles.title}>Customer Orders</h1>
+          <div>
+            <p style={styles.subtitleText}>Create orders and reserve available physical stock atomically.</p>
+          </div>
           {isSales && !showAddForm && (
             <button onClick={() => setShowAddForm(true)} style={styles.primaryBtn}>
               <Plus size={16} style={{ marginRight: 6 }} /> Create New Order
@@ -174,10 +167,31 @@ export const Orders: React.FC = () => {
         {error && <div style={styles.errorBox}>{error}</div>}
         {success && <div style={styles.successBox}>{success}</div>}
 
+        {!isAuthorizedToView && (
+          <div style={styles.warningBox}>
+            <ShieldAlert size={20} style={{ marginRight: 10 }} />
+            Your current role does not have authorization to view customer orders.
+          </div>
+        )}
+
+        {/* Filter Toolbar */}
+        <div style={styles.toolbar}>
+          <div style={styles.searchBox}>
+            <Search size={18} color="#64748b" style={{ marginRight: 8 }} />
+            <input
+              type="text"
+              placeholder="Search by Order ID or Item name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={styles.searchInput}
+            />
+          </div>
+        </div>
+
         {/* Add Customer Order Panel */}
         {isSales && showAddForm && (
           <div style={styles.formCard}>
-            <h2 style={styles.cardTitle}>New Customer Order Request</h2>
+            <h3 style={styles.cardTitle}>New Customer Order Request</h3>
 
             <div style={{ ...styles.formGroup, marginBottom: '24px' }}>
               <label style={styles.label}>Order ID (Unique alphanumeric string)</label>
@@ -193,7 +207,7 @@ export const Orders: React.FC = () => {
 
             {/* Add Line Item form */}
             <div style={styles.lineFormCard}>
-              <h3 style={styles.subCardTitle}>Add Order Item</h3>
+              <h4 style={styles.subCardTitle}>Add Order Item</h4>
               <form onSubmit={handleAddDraftItem} style={styles.inlineForm}>
                 <div style={{ ...styles.formGroup, flex: 2 }}>
                   <label style={styles.label}>Item</label>
@@ -228,11 +242,22 @@ export const Orders: React.FC = () => {
                   Add Item
                 </button>
               </form>
+
+              {/* Real-time stock reservation status indicator */}
+              {selectedItemId && (
+                <div style={styles.stockStatusPreview}>
+                  <span style={{ color: exceedsStock ? '#f87171' : '#34d399', fontWeight: '600' }}>
+                    {exceedsStock
+                      ? `Insufficient stock. Requested: ${quantity}, Available: ${totalAvailable}`
+                      : `Available Stock: ${totalAvailable}`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Draft Items List */}
             <div style={{ marginTop: '24px', marginBottom: '24px' }}>
-              <h3 style={{ ...styles.subCardTitle, marginBottom: '12px' }}>Order Review List</h3>
+              <h4 style={{ ...styles.subCardTitle, marginBottom: '12px' }}>Order Review List</h4>
               {draftItems.length === 0 ? (
                 <p style={styles.emptyText}>No items added to this order draft yet.</p>
               ) : (
@@ -241,22 +266,22 @@ export const Orders: React.FC = () => {
                     <thead>
                       <tr>
                         <th style={styles.th}>Item Name</th>
-                        <th style={styles.th}>Quantity</th>
-                        <th style={styles.th}>Action</th>
+                        <th style={styles.thRight}>Quantity</th>
+                        <th style={styles.thRight}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {draftItems.map((draft, idx) => (
                         <tr key={idx} style={styles.tr}>
                           <td style={styles.td}>{draft.itemName}</td>
-                          <td style={styles.td}>{draft.quantity}</td>
-                          <td style={styles.td}>
+                          <td style={styles.tdQty}>{draft.quantity}</td>
+                          <td style={styles.tdRight}>
                             <button
                               type="button"
                               onClick={() => handleRemoveDraftItem(idx)}
                               style={styles.deleteBtn}
                             >
-                              <Trash2 size={14} style={{ marginRight: 4 }} /> Remove
+                              <Trash2 size={13} style={{ marginRight: 4 }} /> Remove
                             </button>
                           </td>
                         </tr>
@@ -268,7 +293,7 @@ export const Orders: React.FC = () => {
             </div>
 
             <div style={styles.btnRow}>
-              <button onClick={handleSubmitOrder} style={styles.primaryBtn}>
+              <button onClick={handleSubmitOrder} style={styles.submitBtn}>
                 Submit and Reserve Stock
               </button>
               <button
@@ -278,7 +303,7 @@ export const Orders: React.FC = () => {
                   setOrderId('');
                   setDraftItems([]);
                 }}
-                style={styles.secondaryBtn}
+                style={styles.cancelBtn}
               >
                 Cancel
               </button>
@@ -288,9 +313,10 @@ export const Orders: React.FC = () => {
 
         {/* Existing Customer Orders Ledger */}
         <div style={styles.card}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '20px' }}>Orders Ledger</h2>
-          {orders.length === 0 ? (
-            <p style={styles.emptyText}>No customer orders found.</p>
+          {filteredOrders.length === 0 ? (
+            <div style={styles.emptyContainer}>
+              <p style={styles.emptyText}>No customer orders recorded.</p>
+            </div>
           ) : (
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
@@ -300,12 +326,12 @@ export const Orders: React.FC = () => {
                     <th style={styles.th}>Status</th>
                     <th style={styles.th}>Ordered Items</th>
                     <th style={styles.th}>Creator</th>
-                    <th style={styles.th}>Submitted At</th>
+                    <th style={styles.thRight}>Submitted At</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((ord) => {
-                    const statusColor = ord.status === 'CONFIRMED' ? '#4ade80' : '#f87171';
+                  {filteredOrders.map((ord) => {
+                    const statusColor = ord.status === 'CONFIRMED' ? '#10b981' : '#ef4444';
                     return (
                       <tr key={ord.id} style={styles.tr}>
                         <td style={styles.tdId}>{ord.orderId}</td>
@@ -317,8 +343,8 @@ export const Orders: React.FC = () => {
                               backgroundColor: `${statusColor}1A`,
                               border: `1px solid ${statusColor}4D`,
                               color: statusColor,
-                              fontSize: '12px',
-                              fontWeight: '600',
+                              fontSize: '11px',
+                              fontWeight: '700',
                             }}
                           >
                             {ord.status}
@@ -327,8 +353,8 @@ export const Orders: React.FC = () => {
                         <td style={styles.td}>
                           <ul style={styles.itemList}>
                             {ord.items?.map((it: any, i: number) => (
-                              <li key={i}>
-                                {it.itemName} &times; <strong>{it.quantity}</strong>
+                              <li key={i} style={styles.itemLi}>
+                                {it.itemName} &times; <strong style={{ color: '#1e293b' }}>{it.quantity}</strong>
                               </li>
                             ))}
                           </ul>
@@ -345,228 +371,211 @@ export const Orders: React.FC = () => {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </ERPLayout>
   );
 };
 
 const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#090a0f',
-    color: '#f8fafc',
-    fontFamily: '"Outfit", "Inter", system-ui, sans-serif',
-  },
   loadingContainer: {
     minHeight: '100vh',
-    backgroundColor: '#090a0f',
+    backgroundColor: '#f8fafc',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  header: {
-    height: '70px',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+  viewContainer: {
     display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 32px',
-    backdropFilter: 'blur(10px)',
-  },
-  headerBrand: {
-    display: 'flex',
-    alignItems: 'center',
-  },
-  brandText: {
-    fontSize: '18px',
-    fontWeight: '700',
-    letterSpacing: '-0.5px',
-    marginRight: '12px',
-  },
-  badge: {
-    fontSize: '11px',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
-    color: '#a5b4fc',
-    padding: '3px 8px',
-    borderRadius: '10px',
-    fontWeight: '600',
-  },
-  backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    color: '#94a3b8',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
-  },
-  userRole: {
-    fontSize: '13px',
-    color: '#cbd5e1',
-  },
-  main: {
-    padding: '40px 32px',
-    maxWidth: '1200px',
-    margin: '0 auto',
+    flexDirection: 'column',
+    gap: '24px'
   },
   titleRow: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: '32px',
+    gap: '16px'
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '800',
-    margin: 0,
-    background: 'linear-gradient(to right, #ffffff, #94a3b8)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+  subtitleText: {
+    fontSize: '13px',
+    color: '#64748b',
+    margin: 0
+  },
+  toolbar: {
+    backgroundcolor: '#1e293b',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '10px',
+    padding: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '16px',
+    flexWrap: 'wrap'
+  },
+  searchBox: {
+    flex: 1,
+    minWidth: '260px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '0 12px',
+    display: 'flex',
+    alignItems: 'center'
+  },
+  searchInput: {
+    flex: 1,
+    background: 'none',
+    border: 'none',
+    color: '#1e293b',
+    padding: '10px 0',
+    fontSize: '13px',
+    outline: 'none'
+  },
+  primaryBtn: {
+    backgroundColor: '#3b5bdb',
+    border: 'none',
+    color: '#1e293b',
+    padding: '10px 20px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center'
   },
   card: {
-    background: 'rgba(15, 23, 42, 0.4)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
+    backgroundcolor: '#1e293b',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '12px',
+    padding: '24px'
   },
   cardTitle: {
-    fontSize: '18px',
+    fontSize: '15px',
     fontWeight: '700',
-    margin: '0 0 10px 0',
+    margin: '0 0 20px 0',
+    color: '#1e293b'
   },
   subCardTitle: {
-    fontSize: '14px',
+    fontSize: '13px',
     fontWeight: '600',
-    color: '#cbd5e1',
-    margin: '0 0 8px 0',
+    color: '#374151',
+    margin: '0 0 10px 0'
   },
   formCard: {
-    background: 'rgba(99, 102, 241, 0.04)',
-    border: '1px solid rgba(99, 102, 241, 0.2)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
+    backgroundColor: '#fff',
+    border: '1.5px solid #bfdbfe',
+    borderRadius: '12px',
+    padding: '24px'
   },
   lineFormCard: {
-    background: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: '12px',
-    padding: '20px',
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
-  },
-  inlineForm: {
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: '16px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
+    borderRadius: '8px',
+    padding: '16px'
   },
   formGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: '6px'
   },
-  formRow: {
+  inlineForm: {
     display: 'flex',
-    gap: '20px',
+    alignItems: 'flex-end',
+    gap: '12px',
+    flexWrap: 'wrap'
   },
-  formGroupHalf: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+  stockStatusPreview: {
+    marginTop: '10px',
+    fontSize: '12px'
   },
   label: {
-    fontSize: '13px',
+    fontSize: '12px',
     fontWeight: '600',
-    color: '#94a3b8',
+    color: '#64748b'
   },
   select: {
-    padding: '12px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
     borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
+    color: '#1e293b',
+    padding: '10px 12px',
+    fontSize: '13px',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box'
   },
   input: {
-    padding: '12px',
+    backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0',
     borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
-  },
-  primaryBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '12px 24px',
-    backgroundColor: '#6366f1',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#ffffff',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  secondaryBtn: {
-    padding: '12px 24px',
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '8px',
-    color: '#cbd5e1',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
+    color: '#1e293b',
+    padding: '10px 12px',
+    fontSize: '13px',
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box'
   },
   addLineBtn: {
-    padding: '12px 24px',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
+    backgroundColor: 'rgba(99, 102, 241, 0.12)',
+    border: '1px solid rgba(99, 102, 241, 0.25)',
     borderRadius: '8px',
-    color: '#a5b4fc',
-    fontSize: '14px',
+    color: '#3b5bdb',
+    padding: '10px 20px',
+    fontSize: '13px',
     fontWeight: '600',
     cursor: 'pointer',
+    whiteSpace: 'nowrap'
   },
   deleteBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '6px 12px',
-    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #fecaca',
     borderRadius: '6px',
-    color: '#f87171',
+    color: '#dc2626',
+    padding: '6px 12px',
     fontSize: '12px',
     fontWeight: '600',
     cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center'
   },
   btnRow: {
     display: 'flex',
-    gap: '12px',
+    gap: '12px'
+  },
+  submitBtn: {
+    backgroundColor: '#3b5bdb',
+    border: 'none',
+    borderRadius: '8px',
+    color: '#1e293b',
+    padding: '10px 20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer'
+  },
+  cancelBtn: {
+    backgroundColor: 'transparent',
+    border: '1px solid rgba(255, 255, 255, 0.12)',
+    borderRadius: '8px',
+    color: '#64748b',
+    padding: '10px 20px',
+    fontSize: '13px',
+    fontWeight: '600',
+    cursor: 'pointer'
   },
   errorBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#f87171',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #fecaca',
+    color: '#dc2626',
     borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    padding: '12px 16px',
+    fontSize: '13px'
   },
   successBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    border: '1px solid rgba(34, 197, 94, 0.2)',
-    color: '#4ade80',
+    backgroundColor: '#dcfce7',
+    border: '1px solid #bbf7d0',
+    color: '#16a34a',
     borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    padding: '12px 16px',
+    fontSize: '13px'
   },
   warningBox: {
     display: 'flex',
@@ -579,43 +588,70 @@ const styles: Record<string, React.CSSProperties> = {
     marginBottom: '24px',
     fontSize: '14px',
   },
+  emptyContainer: {
+    padding: '40px 0',
+    textAlign: 'center'
+  },
   emptyText: {
-    color: '#94a3b8',
-    fontSize: '14px',
+    color: '#64748b',
+    fontSize: '13px',
+    margin: 0
   },
   tableWrapper: {
-    overflowX: 'auto',
+    overflowX: 'auto'
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
     textAlign: 'left',
-    fontSize: '14px',
+    fontSize: '13px'
   },
   th: {
-    padding: '16px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
+    padding: '12px 16px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#64748b',
+    fontWeight: '600'
+  },
+  thRight: {
+    padding: '12px 16px',
+    borderBottom: '1px solid #e2e8f0',
+    color: '#64748b',
     fontWeight: '600',
+    textAlign: 'right'
   },
   tr: {
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
+    borderBottom: '1px solid #f8fafc',
   },
   td: {
-    padding: '16px',
+    padding: '12px 16px'
+  },
+  tdRight: {
+    padding: '12px 16px',
+    textAlign: 'right'
   },
   tdId: {
-    padding: '16px',
+    padding: '12px 16px',
     fontWeight: '600',
-    color: '#fbbf24',
+    color: '#fbbf24'
+  },
+  tdQty: {
+    padding: '12px 16px',
+    textAlign: 'right',
+    color: '#374151'
   },
   tdTime: {
-    padding: '16px',
-    color: '#94a3b8',
+    padding: '12px 16px',
+    textAlign: 'right',
+    color: '#64748b'
   },
   itemList: {
     margin: 0,
-    paddingLeft: '20px',
+    paddingLeft: '16px'
   },
+  itemLi: {
+    color: '#64748b',
+    marginBottom: '4px'
+  }
 };
 export default Orders;
+

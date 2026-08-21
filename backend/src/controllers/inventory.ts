@@ -7,6 +7,16 @@ const enrichInventory = (record: any) => ({
   availableQuantity: record.physicalQuantity - record.reservedQuantity,
 });
 
+const inventoryInclude = {
+  item: {
+    include: {
+      category: true,
+    },
+  },
+  location: true,
+  batch: true,
+};
+
 export const createInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { itemId, locationId, batchId, physicalQuantity, reservedQuantity = 0 } = req.body;
@@ -33,11 +43,7 @@ export const createInventory = async (req: Request, res: Response, next: NextFun
         physicalQuantity,
         reservedQuantity,
       },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(201).json({
@@ -63,22 +69,19 @@ export const updatePhysicalQuantity = async (req: Request, res: Response, next: 
       return;
     }
 
-    const newPhysical = physicalQuantity !== undefined ? physicalQuantity : existing.physicalQuantity;
-    const newReserved = reservedQuantity !== undefined ? reservedQuantity : existing.reservedQuantity;
+    // Determine final values to validate, using existing if not provided
+    const nextPhysical = physicalQuantity !== undefined ? physicalQuantity : existing.physicalQuantity;
+    const nextReserved = reservedQuantity !== undefined ? reservedQuantity : existing.reservedQuantity;
 
-    inventoryService.validateQuantity(newPhysical, newReserved);
+    inventoryService.validateQuantity(nextPhysical, nextReserved);
 
     const record = await prisma.inventory.update({
       where: { id },
       data: {
-        physicalQuantity: newPhysical,
-        reservedQuantity: newReserved,
+        physicalQuantity: nextPhysical,
+        reservedQuantity: nextReserved,
       },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(200).json({
@@ -93,11 +96,7 @@ export const updatePhysicalQuantity = async (req: Request, res: Response, next: 
 export const listInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const records = await prisma.inventory.findMany({
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(200).json({
@@ -114,11 +113,7 @@ export const getInventoryById = async (req: Request, res: Response, next: NextFu
     const { id } = req.params;
     const record = await prisma.inventory.findUnique({
       where: { id },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     if (!record) {
@@ -140,11 +135,7 @@ export const getInventoryByItem = async (req: Request, res: Response, next: Next
     const { itemId } = req.params;
     const records = await prisma.inventory.findMany({
       where: { itemId },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(200).json({
@@ -161,11 +152,7 @@ export const getInventoryByLocation = async (req: Request, res: Response, next: 
     const { locationId } = req.params;
     const records = await prisma.inventory.findMany({
       where: { locationId },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(200).json({
@@ -182,11 +169,7 @@ export const getInventoryByBatch = async (req: Request, res: Response, next: Nex
     const { batchId } = req.params;
     const records = await prisma.inventory.findMany({
       where: { batchId },
-      include: {
-        item: true,
-        location: true,
-        batch: true,
-      },
+      include: inventoryInclude,
     });
 
     res.status(200).json({

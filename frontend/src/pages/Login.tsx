@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Server, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Lock, Mail, HelpCircle } from 'lucide-react';
 import api from '../services/api';
 
 export const Login: React.FC = () => {
@@ -14,291 +14,342 @@ export const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
       await api.login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAutoFill = (demoEmail: string) => {
-    setEmail(demoEmail);
+  const handleAutoFill = (role: 'admin' | 'operations' | 'sales') => {
+    const map: Record<string, string> = {
+      admin: 'admin@opsflow.local',
+      operations: 'operations@opsflow.local',
+      sales: 'sales@opsflow.local',
+    };
+    setEmail(map[role]);
     setPassword('OpsFlow@123');
+    setError(null);
   };
 
   return (
-    <div style={styles.container}>
-      {/* Background Decorative Blurs */}
-      <div style={styles.blurTop} />
-      <div style={styles.blurBottom} />
+    <div style={s.page}>
+      {/* ── Main card ── */}
+      <div style={s.card}>
 
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <div style={styles.logoContainer}>
-            <Server size={32} color="#818cf8" />
+        {/* Logo + Title */}
+        <div style={s.logoWrap}>
+          <div style={s.logoBox}>
+            {/* Arrow/flow icon matching screenshot */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
           </div>
-          <h1 style={styles.title}>OpsFlow ERP</h1>
-          <p style={styles.subtitle}>Enter credentials to access the enterprise platform</p>
         </div>
+        <h1 style={s.title}>OpsFlow ERP</h1>
+        <p style={s.subtitle}>Enter credentials to access the enterprise<br />platform</p>
 
-        {error && (
-          <div style={styles.errorContainer}>
-            <ShieldCheck size={18} color="#f87171" style={{ marginRight: 8 }} />
-            <span>{error}</span>
-          </div>
-        )}
+        {/* Error */}
+        {error && <div style={s.errorBox}>{error}</div>}
 
-        <form onSubmit={handleLogin} style={styles.form}>
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Email Address</label>
-            <div style={styles.inputWrapper}>
-              <Mail size={18} color="#64748b" style={styles.inputIcon} />
+        {/* Form */}
+        <form onSubmit={handleLogin} style={s.form}>
+          <div style={s.fieldGroup}>
+            <label style={s.label}>Email Address</label>
+            <div style={s.inputWrap}>
+              <Mail size={16} color="#94a3b8" style={s.icon} />
               <input
+                id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="name@company.com"
                 required
-                style={styles.input}
+                style={s.input}
               />
             </div>
           </div>
 
-          <div style={styles.inputGroup}>
-            <label style={styles.label}>Password</label>
-            <div style={styles.inputWrapper}>
-              <Lock size={18} color="#64748b" style={styles.inputIcon} />
+          <div style={s.fieldGroup}>
+            <label style={s.label}>Password</label>
+            <div style={s.inputWrap}>
+              <Lock size={16} color="#94a3b8" style={s.icon} />
               <input
+                id="password"
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                style={styles.input}
+                style={s.input}
               />
             </div>
           </div>
 
-          <button type="submit" disabled={loading} style={styles.button}>
-            {loading ? 'Authenticating...' : 'Sign In'}
+          <button
+            id="sign-in-btn"
+            type="submit"
+            disabled={loading}
+            style={{ ...s.signInBtn, opacity: loading ? 0.75 : 1 }}
+          >
+            {loading ? 'Signing in…' : 'Sign In'}
           </button>
         </form>
 
-        <div style={styles.divider}>
-          <span style={styles.dividerText}>Demo Access Credentials</span>
-        </div>
-
-        <div style={styles.demoSection}>
-          <p style={styles.demoLabel}>Select a role to autofill:</p>
-          <div style={styles.demoButtonsContainer}>
-            <button onClick={() => handleAutoFill('admin@opsflow.local')} style={styles.demoBtn}>
-              Admin
-            </button>
-            <button onClick={() => handleAutoFill('operations@opsflow.local')} style={styles.demoBtn}>
-              Operations
-            </button>
-            <button onClick={() => handleAutoFill('sales@opsflow.local')} style={styles.demoBtn}>
-              Sales
-            </button>
+        {/* Demo Credentials */}
+        <div style={s.demoSectionLabel}>DEMO ACCESS CREDENTIALS</div>
+        <div style={s.demoBox}>
+          <p style={s.demoHint}>Select a role to autofill:</p>
+          <div style={s.chipRow}>
+            <button onClick={() => handleAutoFill('admin')} style={s.chip}>Admin</button>
+            <button onClick={() => handleAutoFill('operations')} style={s.chip}>Operations</button>
+            <button onClick={() => handleAutoFill('sales')} style={s.chip}>Sales</button>
           </div>
-          <div style={styles.credentialsHint}>
-            <HelpCircle size={14} color="#64748b" style={{ marginRight: 4 }} />
-            <span>Password: <code>OpsFlow@123</code></span>
+          <div style={s.pwHint}>
+            <HelpCircle size={13} color="#94a3b8" style={{ marginRight: 5, flexShrink: 0 }} />
+            <span>Password: <strong>OpsFlow@123</strong></span>
           </div>
         </div>
       </div>
+
+      {/* ── Footer ── */}
+      <footer style={s.footer}>
+        <div style={s.footerTitle}>OpsFlow ERP</div>
+        <p style={s.footerCopy}>© 2024 OpsFlow ERP. All rights reserved. Precision Enterprise Systems.</p>
+        <div style={s.footerLinks}>
+          <a href="#" style={s.footerLink}>Security</a>
+          <a href="#" style={s.footerLink}>Terms of Service</a>
+          <a href="#" style={s.footerLink}>Privacy Policy</a>
+        </div>
+        <div style={s.footerStatus}>
+          <span style={s.statusDot} /> System Status
+        </div>
+      </footer>
     </div>
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
+const s: Record<string, React.CSSProperties> = {
+  page: {
     minHeight: '100vh',
+    backgroundColor: '#3b5bdb',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
+    padding: '24px 16px',
+    gap: 24,
+  },
+
+  // Card
+  card: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: '36px 28px 28px',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+  },
+
+  // Logo
+  logoWrap: { marginBottom: 14 },
+  logoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: '#3b5bdb',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#090a0f',
-    color: '#f8fafc',
-    fontFamily: '"Outfit", "Inter", system-ui, sans-serif',
-    position: 'relative',
-    overflow: 'hidden',
-    padding: '24px',
   },
-  blurTop: {
-    position: 'absolute',
-    top: '-10%',
-    left: '-10%',
-    width: '400px',
-    height: '400px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%)',
-    filter: 'blur(60px)',
-    pointerEvents: 'none',
-  },
-  blurBottom: {
-    position: 'absolute',
-    bottom: '-10%',
-    right: '-10%',
-    width: '500px',
-    height: '500px',
-    borderRadius: '50%',
-    background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%)',
-    filter: 'blur(80px)',
-    pointerEvents: 'none',
-  },
-  card: {
-    position: 'relative',
-    zIndex: 1,
-    width: '100%',
-    maxWidth: '440px',
-    background: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(20px)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    borderRadius: '24px',
-    padding: '40px',
-    boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '32px',
-  },
-  logoContainer: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '12px',
-    borderRadius: '16px',
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    border: '1px solid rgba(99, 102, 241, 0.25)',
-    marginBottom: '16px',
-  },
+
   title: {
-    fontSize: '28px',
-    fontWeight: '700',
-    letterSpacing: '-0.5px',
-    marginBottom: '8px',
-    background: 'linear-gradient(to right, #ffffff, #c7d2fe)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
+    fontSize: 22,
+    fontWeight: 700,
+    color: '#1a1a2e',
+    margin: '0 0 6px 0',
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: '14px',
-    color: '#94a3b8',
-    lineHeight: '1.5',
+    fontSize: 13,
+    color: '#3b5bdb',
+    textAlign: 'center',
+    lineHeight: 1.5,
+    margin: '0 0 24px 0',
   },
-  errorContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.25)',
-    borderRadius: '12px',
-    padding: '12px 16px',
-    color: '#f87171',
-    fontSize: '14px',
-    marginBottom: '24px',
+
+  // Error
+  errorBox: {
+    width: '100%',
+    backgroundColor: '#fff0f0',
+    border: '1px solid #ffc9c9',
+    color: '#c92a2a',
+    borderRadius: 8,
+    padding: '10px 14px',
+    fontSize: 13,
+    marginBottom: 16,
+    textAlign: 'center',
+    boxSizing: 'border-box',
   },
+
+  // Form
   form: {
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    gap: '20px',
+    gap: 16,
+    marginBottom: 24,
   },
-  inputGroup: {
+  fieldGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '8px',
+    gap: 6,
+    width: '100%',
   },
   label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#cbd5e1',
-    letterSpacing: '0.5px',
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#374151',
   },
-  inputWrapper: {
+  inputWrap: {
     position: 'relative',
     display: 'flex',
     alignItems: 'center',
   },
-  inputIcon: {
+  icon: {
     position: 'absolute',
-    left: '16px',
+    left: 12,
+    flexShrink: 0,
   },
   input: {
     width: '100%',
-    padding: '14px 16px 14px 48px',
-    borderRadius: '12px',
-    backgroundColor: 'rgba(10, 11, 20, 0.7)',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#ffffff',
-    fontSize: '15px',
+    padding: '11px 14px 11px 38px',
+    border: '1.5px solid #d1d5db',
+    borderRadius: 8,
+    fontSize: 14,
+    color: '#111827',
+    backgroundColor: '#ffffff',
     outline: 'none',
-    transition: 'all 0.2s ease',
+    boxSizing: 'border-box',
   },
-  button: {
-    padding: '14px',
-    borderRadius: '12px',
-    backgroundColor: '#6366f1',
+  signInBtn: {
+    width: '100%',
+    padding: '13px',
+    backgroundColor: '#3b5bdb',
     color: '#ffffff',
     border: 'none',
-    fontSize: '16px',
-    fontWeight: '600',
+    borderRadius: 8,
+    fontSize: 15,
+    fontWeight: 600,
     cursor: 'pointer',
-    transition: 'all 0.2s ease',
-    marginTop: '8px',
-    boxShadow: '0 4px 12px rgba(99, 102, 241, 0.3)',
+    marginTop: 4,
+    letterSpacing: 0.3,
   },
-  divider: {
+
+  // Demo section
+  demoSectionLabel: {
+    width: '100%',
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#9ca3af',
+    letterSpacing: '0.08em',
+    marginBottom: 12,
+  },
+  demoBox: {
+    width: '100%',
+    backgroundColor: '#f9fafb',
+    border: '1px solid #e5e7eb',
+    borderRadius: 10,
+    padding: '14px 16px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 10,
+  },
+  demoHint: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: '#374151',
+    margin: 0,
+  },
+  chipRow: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  chip: {
+    padding: '5px 14px',
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    border: '1.5px solid #d1d5db',
+    color: '#374151',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  pwHint: {
     display: 'flex',
     alignItems: 'center',
-    margin: '28px 0',
+    fontSize: 12,
+    color: '#6b7280',
   },
-  dividerText: {
-    flex: '1',
+
+  // Footer
+  footer: {
+    width: '100%',
+    maxWidth: 360,
     textAlign: 'center',
-    fontSize: '12px',
-    color: '#64748b',
-    fontWeight: '600',
-    letterSpacing: '1px',
-    textTransform: 'uppercase',
-  },
-  demoSection: {
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
-    border: '1px solid rgba(255, 255, 255, 0.05)',
-    borderRadius: '16px',
-    padding: '16px',
-    textAlign: 'center',
-  },
-  demoLabel: {
-    fontSize: '13px',
-    color: '#94a3b8',
-    marginBottom: '12px',
-  },
-  demoButtonsContainer: {
     display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: 6,
+  },
+  footerTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: '#374151',
+  },
+  footerCopy: {
+    fontSize: 11,
+    color: '#9ca3af',
+    margin: 0,
+    lineHeight: 1.6,
+  },
+  footerLinks: {
+    display: 'flex',
+    gap: 16,
+    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: '8px',
-    marginBottom: '12px',
   },
-  demoBtn: {
-    padding: '6px 14px',
-    borderRadius: '8px',
-    backgroundColor: 'rgba(255, 255, 255, 0.06)',
-    border: '1px solid rgba(255, 255, 255, 0.08)',
-    color: '#cbd5e1',
-    fontSize: '13px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s ease',
+  footerLink: {
+    fontSize: 12,
+    color: '#6b7280',
+    textDecoration: 'none',
   },
-  credentialsHint: {
+  footerStatus: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '12px',
-    color: '#64748b',
+    gap: 5,
+    fontSize: 12,
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  statusDot: {
+    display: 'inline-block',
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    backgroundColor: '#22c55e',
   },
 };
+
 export default Login;

@@ -16,14 +16,16 @@ import { Role } from '@prisma/client';
 const router = Router();
 
 router.use(authenticate);
-router.use(authorizeRoles(Role.ADMIN, Role.OPERATIONS));
 
-router.get('/', listInventory);
-router.get('/:id', getInventoryById);
-router.post('/', validateRequest(createInventorySchema), createInventory);
-router.patch('/:id', validateRequest(updatePhysicalQuantitySchema), updatePhysicalQuantity);
-router.get('/item/:itemId', getInventoryByItem);
-router.get('/location/:locationId', getInventoryByLocation);
-router.get('/batch/:batchId', getInventoryByBatch);
+// Read-only inventory routes accessible by Admin, Operations, and Sales
+router.get('/', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.SALES), listInventory);
+router.get('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.SALES), getInventoryById);
+router.get('/item/:itemId', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.SALES), getInventoryByItem);
+router.get('/location/:locationId', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.SALES), getInventoryByLocation);
+router.get('/batch/:batchId', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.SALES), getInventoryByBatch);
+
+// Modification inventory routes restricted to Admin and Operations
+router.post('/', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(createInventorySchema), createInventory);
+router.patch('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(updatePhysicalQuantitySchema), updatePhysicalQuantity);
 
 export default router;

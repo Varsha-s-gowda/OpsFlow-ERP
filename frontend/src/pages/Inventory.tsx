@@ -1,27 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Server, ArrowLeft, Plus, Edit2, ShieldAlert } from 'lucide-react';
+import { Plus, Edit2, Search, Package, X } from 'lucide-react';
 import api, { User } from '../services/api';
+import ERPLayout from '../components/ERPLayout';
+
+type FormMode = 'none' | 'addItem' | 'addStock' | 'editStock';
 
 export const Inventory: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [records, setRecords] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [locations, setLocations] = useState<any[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [formMode, setFormMode] = useState<FormMode>('none');
 
-  // Form State
-  const [showAddForm, setShowAddForm] = useState(false);
+  // Search & Filter
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [filterStock, setFilterStock] = useState('');
+
+  // Add New Item form state
+  const [newItemName, setNewItemName] = useState('');
+  const [newItemSku, setNewItemSku] = useState('');
+  const [newItemCategoryId, setNewItemCategoryId] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newBatchNumber, setNewBatchNumber] = useState('');
+
+  // Add Stock Record form state
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [physicalQuantity, setPhysicalQuantity] = useState(0);
   const [reservedQuantity, setReservedQuantity] = useState(0);
 
-  // Edit State
+  // Edit state
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [editPhysical, setEditPhysical] = useState(0);
   const [editReserved, setEditReserved] = useState(0);
@@ -31,17 +47,29 @@ export const Inventory: React.FC = () => {
       const profile = await api.getMe();
       setUser(profile.data.user);
 
-      const [invRes, itemRes, locRes, batchRes] = await Promise.all([
+      const [invRes, itemRes, catRes, locRes, batchRes] = await Promise.all([
         api.getInventory(),
         api.getItems(),
+        api.getCategories(),
         api.getLocations(),
         api.getBatches(),
       ]);
 
       setRecords(invRes.data || []);
       setItems(itemRes.data || []);
+      setCategories(catRes.data || []);
       setLocations(locRes.data || []);
       setBatches(batchRes.data || []);
+
+      // Auto-generate next SKU
+      const existingNums = (itemRes.data || [])
+        .map((it: any) => {
+          const m = it.sku?.match(/^ITEM-(\d+)$/);
+          return m ? parseInt(m[1], 10) : 0;
+        })
+        .filter((n: number) => n > 0);
+      const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
+      setNewItemSku(`ITEM-${String(nextNum).padStart(3, '0')}`);
     } catch (err: any) {
       setError(err.message || 'Failed to load inventory data');
     } finally {
@@ -53,10 +81,60 @@ export const Inventory: React.FC = () => {
     fetchAllData();
   }, []);
 
+  const clearMessages = () => { setError(''); setSuccess(''); };
+
+  const openForm = (mode: FormMode) => {
+    clearMessages();
+    setFormMode(mode);
+    setEditingRecord(null);
+  };
+
+  const closeForm = () => {
+    setFormMode('none');
+    setEditingRecord(null);
+    clearMessages();
+  };
+
+  // ── Handle: Create New Item (+ optional batch) ──
+  const handleCreateItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    clearMessages();
+    try {
+      let categoryId = newItemCategoryId;
+
+      // Create new category if typed
+      if (showNewCategory && newCategoryName.trim()) {
+        const catRes = await api.createCategory({ name: newCategoryName.trim() });
+        categoryId = catRes.data.id;
+      }
+
+      if (!categoryId) { setError('Please select or create a category.'); return; }
+
+      const itemRes = await api.createItem({ name: newItemName, sku: newItemSku, categoryId });
+      const itemId = itemRes.data.id;
+
+      // Create batch if provided
+      if (newBatchNumber.trim()) {
+        await api.createBatch({ batchNumber: newBatchNumber.trim(), itemId });
+      }
+
+      setSuccess(`Item "${newItemName}" (${newItemSku}) created successfully!`);
+      setNewItemName('');
+      setNewBatchNumber('');
+      setNewItemCategoryId('');
+      setNewCategoryName('');
+      setShowNewCategory(false);
+      closeForm();
+      fetchAllData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to create item');
+    }
+  };
+
+  // ── Handle: Add Stock Record ──
   const handleAddInventory = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    clearMessages();
     try {
       await api.createInventory({
         itemId: selectedItemId,
@@ -65,537 +143,606 @@ export const Inventory: React.FC = () => {
         physicalQuantity: Number(physicalQuantity),
         reservedQuantity: Number(reservedQuantity),
       });
-      setSuccess('Inventory record created successfully!');
-      setShowAddForm(false);
-      // Reset form
-      setSelectedItemId('');
-      setSelectedLocationId('');
-      setSelectedBatchId('');
-      setPhysicalQuantity(0);
-      setReservedQuantity(0);
+      setSuccess('Stock record created successfully!');
+      setSelectedItemId(''); setSelectedLocationId('');
+      setSelectedBatchId(''); setPhysicalQuantity(0); setReservedQuantity(0);
+      closeForm();
       fetchAllData();
     } catch (err: any) {
-      setError(err.message || 'Failed to create inventory record');
+      setError(err.message || 'Failed to create stock record');
     }
   };
 
+  // ── Handle: Edit Stock ──
   const handleUpdateInventory = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    clearMessages();
     try {
       await api.updateInventory(editingRecord.id, {
         physicalQuantity: Number(editPhysical),
         reservedQuantity: Number(editReserved),
       });
-      setSuccess('Inventory record updated successfully!');
-      setEditingRecord(null);
+      setSuccess('Stock updated successfully!');
+      closeForm();
       fetchAllData();
     } catch (err: any) {
-      setError(err.message || 'Failed to update inventory record');
+      setError(err.message || 'Failed to update stock');
     }
   };
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div className="spinner" />
+      <div style={s.loadingContainer}>
+        <div style={s.spinner} />
       </div>
     );
   }
 
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'OPERATIONS';
 
-  return (
-    <div style={styles.container}>
-      <header style={styles.header}>
-        <div style={styles.headerBrand}>
-          <Link to="/" style={styles.backLink}>
-            <ArrowLeft size={18} style={{ marginRight: 8 }} />
-            Dashboard
-          </Link>
-          <Server size={24} color="#818cf8" style={{ marginRight: 10, marginLeft: 20 }} />
-          <span style={styles.brandText}>OpsFlow ERP</span>
-          <span style={styles.badge}>Inventory Control</span>
-        </div>
-        <div style={styles.userRole}>
-          Role: <strong style={{ color: '#818cf8', marginLeft: 4 }}>{user?.role}</strong>
-        </div>
-      </header>
+  const filteredRecords = records.filter((rec: any) => {
+    const matchesSearch =
+      !searchTerm ||
+      rec.item?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rec.item?.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      rec.batch?.batchNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesLocation = !filterLocation || rec.locationId === filterLocation;
+    const av = rec.physicalQuantity - rec.reservedQuantity;
+    let matchesStock = true;
+    if (filterStock === 'healthy') matchesStock = av >= 15;
+    else if (filterStock === 'low') matchesStock = av > 0 && av < 15;
+    else if (filterStock === 'out') matchesStock = av === 0;
+    return matchesSearch && matchesLocation && matchesStock;
+  });
 
-      <main style={styles.main}>
-        <div style={styles.titleRow}>
-          <h1 style={styles.title}>Inventory Management</h1>
-          {isAuthorized && !showAddForm && (
-            <button onClick={() => setShowAddForm(true)} style={styles.primaryBtn}>
-              <Plus size={16} style={{ marginRight: 6 }} /> Add Stock Record
-            </button>
+  const filteredBatches = batches.filter(
+    (b: any) => !selectedItemId || b.itemId === selectedItemId
+  );
+
+  return (
+    <ERPLayout pageTitle="Inventory Stock Control">
+      <div style={s.page}>
+
+        {/* ── Header ── */}
+        <div style={s.header}>
+          <p style={s.subtitle}>Manage warehouse stock levels, items, and batch records.</p>
+          {isAuthorized && (
+            <div style={s.headerBtns}>
+              <button onClick={() => openForm('addItem')} style={s.outlineBtn}>
+                <Package size={15} style={{ marginRight: 6 }} />
+                New Item
+              </button>
+              <button onClick={() => openForm('addStock')} style={s.primaryBtn}>
+                <Plus size={15} style={{ marginRight: 6 }} />
+                Add Stock Record
+              </button>
+            </div>
           )}
         </div>
 
-        {error && <div style={styles.errorBox}>{error}</div>}
-        {success && <div style={styles.successBox}>{success}</div>}
+        {/* ── Messages ── */}
+        {error && <div style={s.errorBox}>{error}</div>}
+        {success && <div style={s.successBox}>{success}</div>}
 
-        {!isAuthorized && (
-          <div style={styles.warningBox}>
-            <ShieldAlert size={20} style={{ marginRight: 10 }} />
-            Your current role does not have authorization to add or modify inventory records.
+        {/* ══════════════════════════════════════════
+            FORM: Add New Item
+        ══════════════════════════════════════════ */}
+        {isAuthorized && formMode === 'addItem' && (
+          <div style={s.formCard}>
+            <div style={s.formCardHeader}>
+              <h3 style={s.formTitle}>Create New Item</h3>
+              <button onClick={closeForm} style={s.closeBtn}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleCreateItem}>
+              <div style={s.formGrid3}>
+
+                {/* Item Name */}
+                <div style={s.formGroup}>
+                  <label style={s.label}>Item Name *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g., Steel Rod 10mm"
+                    value={newItemName}
+                    onChange={e => setNewItemName(e.target.value)}
+                    style={s.input}
+                    required
+                  />
+                </div>
+
+                {/* SKU — auto-generated but editable */}
+                <div style={s.formGroup}>
+                  <label style={s.label}>SKU (auto-generated)</label>
+                  <input
+                    type="text"
+                    value={newItemSku}
+                    onChange={e => setNewItemSku(e.target.value)}
+                    style={{ ...s.input, fontFamily: 'monospace', color: '#0f6fde' }}
+                    required
+                  />
+                </div>
+
+                {/* Category */}
+                <div style={s.formGroup}>
+                  <label style={s.label}>Category *</label>
+                  {!showNewCategory ? (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select
+                        value={newItemCategoryId}
+                        onChange={e => setNewItemCategoryId(e.target.value)}
+                        style={{ ...s.select, flex: 1 }}
+                      >
+                        <option value="">-- Choose Category --</option>
+                        {categories.map((c: any) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => { setShowNewCategory(true); setNewItemCategoryId(''); }}
+                        style={s.smallOutlineBtn}
+                        title="Create new category"
+                      >+ New</button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <input
+                        type="text"
+                        placeholder="New category name"
+                        value={newCategoryName}
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        style={{ ...s.input, flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => { setShowNewCategory(false); setNewCategoryName(''); }}
+                        style={s.smallOutlineBtn}
+                      >Cancel</button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Batch Number (optional) */}
+                <div style={s.formGroup}>
+                  <label style={s.label}>Initial Batch Number <span style={{ color: '#94a3b8' }}>(optional)</span></label>
+                  <input
+                    type="text"
+                    placeholder="e.g., BATCH-2026-A"
+                    value={newBatchNumber}
+                    onChange={e => setNewBatchNumber(e.target.value)}
+                    style={s.input}
+                  />
+                </div>
+              </div>
+
+              <div style={s.btnRow}>
+                <button type="submit" style={s.primaryBtn}>Create Item</button>
+                <button type="button" onClick={closeForm} style={s.cancelBtn}>Cancel</button>
+              </div>
+            </form>
           </div>
         )}
 
-        {/* Add Inventory Form */}
-        {showAddForm && (
-          <div style={styles.formCard}>
-            <h2 style={styles.cardTitle}>New Inventory Combination</h2>
-            <form onSubmit={handleAddInventory} style={styles.form}>
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Select Item</label>
-                <select
-                  value={selectedItemId}
-                  onChange={(e) => setSelectedItemId(e.target.value)}
-                  style={styles.select}
-                  required
-                >
-                  <option value="">-- Choose Item --</option>
-                  {items.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name} ({item.sku})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Select Location</label>
-                <select
-                  value={selectedLocationId}
-                  onChange={(e) => setSelectedLocationId(e.target.value)}
-                  style={styles.select}
-                  required
-                >
-                  <option value="">-- Choose Location --</option>
-                  {locations.map((loc) => (
-                    <option key={loc.id} value={loc.id}>
-                      {loc.name} ({loc.code})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={styles.formGroup}>
-                <label style={styles.label}>Select Batch</label>
-                <select
-                  value={selectedBatchId}
-                  onChange={(e) => setSelectedBatchId(e.target.value)}
-                  style={styles.select}
-                  required
-                >
-                  <option value="">-- Choose Batch --</option>
-                  {batches
-                    .filter((b) => !selectedItemId || b.itemId === selectedItemId)
-                    .map((batch) => (
-                      <option key={batch.id} value={batch.id}>
-                        {batch.batchNumber} - (Item: {batch.item?.name})
-                      </option>
+        {/* ══════════════════════════════════════════
+            FORM: Add Stock Record
+        ══════════════════════════════════════════ */}
+        {isAuthorized && formMode === 'addStock' && (
+          <div style={s.formCard}>
+            <div style={s.formCardHeader}>
+              <h3 style={s.formTitle}>Add Stock Record</h3>
+              <button onClick={closeForm} style={s.closeBtn}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleAddInventory}>
+              <div style={s.formGrid3}>
+                <div style={s.formGroup}>
+                  <label style={s.label}>Item *</label>
+                  <select
+                    value={selectedItemId}
+                    onChange={e => { setSelectedItemId(e.target.value); setSelectedBatchId(''); }}
+                    style={s.select}
+                    required
+                  >
+                    <option value="">-- Choose Item --</option>
+                    {items.map((item: any) => (
+                      <option key={item.id} value={item.id}>{item.name} ({item.sku})</option>
                     ))}
-                </select>
-              </div>
+                  </select>
+                </div>
 
-              <div style={styles.formRow}>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Physical Quantity</label>
+                <div style={s.formGroup}>
+                  <label style={s.label}>Location *</label>
+                  <select
+                    value={selectedLocationId}
+                    onChange={e => setSelectedLocationId(e.target.value)}
+                    style={s.select}
+                    required
+                  >
+                    <option value="">-- Choose Location --</option>
+                    {locations.map((loc: any) => (
+                      <option key={loc.id} value={loc.id}>{loc.name} ({loc.code})</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={s.formGroup}>
+                  <label style={s.label}>Batch *</label>
+                  <select
+                    value={selectedBatchId}
+                    onChange={e => setSelectedBatchId(e.target.value)}
+                    style={s.select}
+                    required
+                  >
+                    <option value="">-- Choose Batch --</option>
+                    {filteredBatches.map((batch: any) => (
+                      <option key={batch.id} value={batch.id}>{batch.batchNumber}</option>
+                    ))}
+                  </select>
+                  {selectedItemId && filteredBatches.length === 0 && (
+                    <p style={{ fontSize: 11, color: '#e07b00', marginTop: 4 }}>
+                      No batches for this item. Create the item first with a batch number.
+                    </p>
+                  )}
+                </div>
+
+                <div style={s.formGroup}>
+                  <label style={s.label}>Physical Quantity *</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={physicalQuantity}
-                    onChange={(e) => setPhysicalQuantity(Number(e.target.value))}
-                    style={styles.input}
-                    required
+                    onChange={e => setPhysicalQuantity(Number(e.target.value))}
+                    style={s.input} required
                   />
                 </div>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Reserved Quantity</label>
+
+                <div style={s.formGroup}>
+                  <label style={s.label}>Reserved Quantity</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={reservedQuantity}
-                    onChange={(e) => setReservedQuantity(Number(e.target.value))}
-                    style={styles.input}
-                    required
+                    onChange={e => setReservedQuantity(Number(e.target.value))}
+                    style={s.input}
                   />
+                </div>
+
+                {/* Available preview */}
+                <div style={{ ...s.formGroup, justifyContent: 'flex-end' }}>
+                  <label style={s.label}>Calculated Available</label>
+                  <div style={s.availablePreview}>
+                    {Math.max(0, physicalQuantity - reservedQuantity)} units
+                  </div>
                 </div>
               </div>
 
-              <div style={styles.btnRow}>
-                <button type="submit" style={styles.primaryBtn}>
-                  Save Stock Record
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowAddForm(false)}
-                  style={styles.secondaryBtn}
-                >
-                  Cancel
-                </button>
+              <div style={s.btnRow}>
+                <button type="submit" style={s.primaryBtn}>Save Stock Record</button>
+                <button type="button" onClick={closeForm} style={s.cancelBtn}>Cancel</button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Edit Inventory Form */}
-        {editingRecord && (
-          <div style={styles.formCard}>
-            <h2 style={styles.cardTitle}>
-              Update Stock for: {editingRecord.item?.name} at {editingRecord.location?.name}
-            </h2>
-            <form onSubmit={handleUpdateInventory} style={styles.form}>
-              <div style={styles.formRow}>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Physical Quantity</label>
+        {/* ══════════════════════════════════════════
+            FORM: Edit Stock
+        ══════════════════════════════════════════ */}
+        {isAuthorized && editingRecord && formMode === 'editStock' && (
+          <div style={s.formCard}>
+            <div style={s.formCardHeader}>
+              <h3 style={s.formTitle}>
+                Update: {editingRecord.item?.name} @ {editingRecord.location?.name}
+              </h3>
+              <button onClick={closeForm} style={s.closeBtn}><X size={16} /></button>
+            </div>
+            <form onSubmit={handleUpdateInventory}>
+              <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 20 }}>
+                <div style={{ ...s.formGroup, flex: 1, minWidth: 180 }}>
+                  <label style={s.label}>Physical Quantity</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={editPhysical}
-                    onChange={(e) => setEditPhysical(Number(e.target.value))}
-                    style={styles.input}
-                    required
+                    onChange={e => setEditPhysical(Number(e.target.value))}
+                    style={s.input} required
                   />
                 </div>
-                <div style={styles.formGroupHalf}>
-                  <label style={styles.label}>Reserved Quantity</label>
+                <div style={{ ...s.formGroup, flex: 1, minWidth: 180 }}>
+                  <label style={s.label}>Reserved Quantity</label>
                   <input
-                    type="number"
-                    min="0"
+                    type="number" min="0"
                     value={editReserved}
-                    onChange={(e) => setEditReserved(Number(e.target.value))}
-                    style={styles.input}
-                    required
+                    onChange={e => setEditReserved(Number(e.target.value))}
+                    style={s.input} required
                   />
+                </div>
+                <div style={{ ...s.formGroup, flex: 1, minWidth: 180 }}>
+                  <label style={s.label}>Calculated Available</label>
+                  <div style={s.availablePreview}>
+                    {Math.max(0, editPhysical - editReserved)} units
+                  </div>
                 </div>
               </div>
-
-              <div style={styles.btnRow}>
-                <button type="submit" style={styles.primaryBtn}>
-                  Update Record
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingRecord(null)}
-                  style={styles.secondaryBtn}
-                >
-                  Cancel
-                </button>
+              <div style={s.btnRow}>
+                <button type="submit" style={s.primaryBtn}>Update Record</button>
+                <button type="button" onClick={closeForm} style={s.cancelBtn}>Cancel</button>
               </div>
             </form>
           </div>
         )}
 
-        {/* Stock Ledger */}
-        <div style={styles.card}>
-          <h2 style={{ ...styles.cardTitle, marginBottom: '20px' }}>Active Inventory Ledger</h2>
-          {records.length === 0 ? (
-            <p style={styles.emptyText}>No inventory records found.</p>
+        {/* ── Toolbar ── */}
+        <div style={s.toolbar}>
+          <div style={s.searchBox}>
+            <Search size={16} color="#94a3b8" style={{ marginRight: 8, flexShrink: 0 }} />
+            <input
+              type="text"
+              placeholder="Search by name, SKU or batch..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={s.searchInput}
+            />
+          </div>
+          <div style={s.filterRow}>
+            <select value={filterLocation} onChange={e => setFilterLocation(e.target.value)} style={s.filterSelect}>
+              <option value="">All Locations</option>
+              {locations.map((l: any) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </select>
+            <select value={filterStock} onChange={e => setFilterStock(e.target.value)} style={s.filterSelect}>
+              <option value="">All Stock Levels</option>
+              <option value="healthy">Healthy (≥ 15)</option>
+              <option value="low">Low Stock (&lt; 15)</option>
+              <option value="out">Out of Stock (= 0)</option>
+            </select>
+            {(searchTerm || filterLocation || filterStock) && (
+              <button onClick={() => { setSearchTerm(''); setFilterLocation(''); setFilterStock(''); }} style={s.clearBtn}>
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ── Table ── */}
+        <div style={s.tableCard}>
+          <div style={s.tableInfo}>
+            <span style={s.tableCount}>{filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''}</span>
+          </div>
+          {filteredRecords.length === 0 ? (
+            <div style={s.empty}>
+              <Package size={36} color="#cbd5e1" />
+              <p style={s.emptyText}>No inventory records match the current filters.</p>
+              {isAuthorized && (
+                <button onClick={() => openForm('addStock')} style={s.primaryBtn}>
+                  <Plus size={14} style={{ marginRight: 6 }} /> Add First Record
+                </button>
+              )}
+            </div>
           ) : (
-            <div style={styles.tableWrapper}>
-              <table style={styles.table}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={s.table}>
                 <thead>
-                  <tr>
-                    <th style={styles.th}>Item</th>
-                    <th style={styles.th}>SKU</th>
-                    <th style={styles.th}>Location</th>
-                    <th style={styles.th}>Batch</th>
-                    <th style={styles.th}>Physical Qty</th>
-                    <th style={styles.th}>Reserved Qty</th>
-                    <th style={styles.th}>Available Qty</th>
-                    {isAuthorized && <th style={styles.th}>Actions</th>}
+                  <tr style={s.theadRow}>
+                    <th style={s.th}>Item</th>
+                    <th style={s.th}>SKU</th>
+                    <th style={s.th}>Category</th>
+                    <th style={s.th}>Location</th>
+                    <th style={s.th}>Batch</th>
+                    <th style={{ ...s.th, textAlign: 'right' }}>Physical</th>
+                    <th style={{ ...s.th, textAlign: 'right' }}>Reserved</th>
+                    <th style={{ ...s.th, textAlign: 'right' }}>Available</th>
+                    <th style={s.th}>Status</th>
+                    {isAuthorized && <th style={{ ...s.th, textAlign: 'right' }}>Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((rec) => (
-                    <tr key={rec.id} style={styles.tr}>
-                      <td style={styles.td}>{rec.item?.name}</td>
-                      <td style={styles.tdSku}>{rec.item?.sku}</td>
-                      <td style={styles.td}>{rec.location?.name}</td>
-                      <td style={styles.tdBatch}>{rec.batch?.batchNumber}</td>
-                      <td style={styles.tdQty}>{rec.physicalQuantity}</td>
-                      <td style={styles.tdQtyReserved}>{rec.reservedQuantity}</td>
-                      <td style={styles.tdQtyAvailable}>{rec.availableQuantity}</td>
-                      {isAuthorized && (
-                        <td style={styles.td}>
-                          <button
-                            onClick={() => {
-                              setEditingRecord(rec);
-                              setEditPhysical(rec.physicalQuantity);
-                              setEditReserved(rec.reservedQuantity);
-                            }}
-                            style={styles.iconBtn}
-                            title="Edit Quantities"
-                          >
-                            <Edit2 size={14} style={{ marginRight: 4 }} /> Edit
-                          </button>
+                  {filteredRecords.map((rec: any) => {
+                    const av = rec.physicalQuantity - rec.reservedQuantity;
+                    const status = av === 0 ? 'out' : av < 15 ? 'low' : 'ok';
+                    const statusMap = {
+                      ok:  { label: 'Healthy',      bg: '#dcfce7', color: '#16a34a', border: '#bbf7d0' },
+                      low: { label: 'Low Stock',    bg: '#fef9c3', color: '#b45309', border: '#fde68a' },
+                      out: { label: 'Out of Stock', bg: '#fee2e2', color: '#dc2626', border: '#fecaca' },
+                    }[status];
+
+                    return (
+                      <tr key={rec.id} style={s.tr}>
+                        <td style={s.tdBold}>{rec.item?.name}</td>
+                        <td style={s.tdSku}>{rec.item?.sku}</td>
+                        <td style={s.td}>{rec.item?.category?.name || '—'}</td>
+                        <td style={s.td}>{rec.location?.name}</td>
+                        <td style={s.tdMono}>{rec.batch?.batchNumber}</td>
+                        <td style={s.tdNum}>{rec.physicalQuantity}</td>
+                        <td style={{ ...s.tdNum, color: '#64748b' }}>{rec.reservedQuantity}</td>
+                        <td style={{ ...s.tdNum, color: av > 0 ? '#16a34a' : '#dc2626', fontWeight: 700 }}>{av}</td>
+                        <td style={s.td}>
+                          <span style={{
+                            padding: '3px 10px',
+                            borderRadius: 20,
+                            fontSize: 11,
+                            fontWeight: 700,
+                            backgroundColor: statusMap.bg,
+                            color: statusMap.color,
+                            border: `1px solid ${statusMap.border}`,
+                          }}>
+                            {statusMap.label}
+                          </span>
                         </td>
-                      )}
-                    </tr>
-                  ))}
+                        {isAuthorized && (
+                          <td style={{ ...s.td, textAlign: 'right' }}>
+                            <button
+                              onClick={() => {
+                                setEditingRecord(rec);
+                                setEditPhysical(rec.physicalQuantity);
+                                setEditReserved(rec.reservedQuantity);
+                                openForm('editStock');
+                              }}
+                              style={s.actionBtn}
+                            >
+                              <Edit2 size={13} style={{ marginRight: 4 }} /> Edit
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </ERPLayout>
   );
 };
 
-const styles: Record<string, React.CSSProperties> = {
-  container: {
-    minHeight: '100vh',
-    backgroundColor: '#090a0f',
-    color: '#f8fafc',
-    fontFamily: '"Outfit", "Inter", system-ui, sans-serif',
-  },
+// ── Light Theme Styles ──
+const s: Record<string, React.CSSProperties> = {
   loadingContainer: {
-    minHeight: '100vh',
-    backgroundColor: '#090a0f',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+    minHeight: '100vh', backgroundColor: '#f8fafc',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
+  spinner: {
+    width: 36, height: 36,
+    border: '3px solid #e2e8f0',
+    borderTop: '3px solid #3b82f6',
+    borderRadius: '50%',
+    animation: 'spin 0.8s linear infinite',
+  },
+  page: { display: 'flex', flexDirection: 'column', gap: 20 },
   header: {
-    height: '70px',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: '0 32px',
-    backdropFilter: 'blur(10px)',
+    display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
   },
-  headerBrand: {
-    display: 'flex',
-    alignItems: 'center',
+  subtitle: { fontSize: 13, color: '#64748b', margin: 0 },
+  headerBtns: { display: 'flex', gap: 10 },
+
+  // Buttons
+  primaryBtn: {
+    backgroundColor: '#3b82f6', border: 'none', color: '#fff',
+    padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
   },
-  brandText: {
-    fontSize: '18px',
-    fontWeight: '700',
-    letterSpacing: '-0.5px',
-    marginRight: '12px',
+  outlineBtn: {
+    backgroundColor: '#fff', border: '1.5px solid #3b82f6', color: '#3b82f6',
+    padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
   },
-  badge: {
-    fontSize: '11px',
-    backgroundColor: 'rgba(99, 102, 241, 0.15)',
-    border: '1px solid rgba(99, 102, 241, 0.3)',
-    color: '#a5b4fc',
-    padding: '3px 8px',
-    borderRadius: '10px',
-    fontWeight: '600',
+  cancelBtn: {
+    backgroundColor: '#fff', border: '1.5px solid #e2e8f0', color: '#64748b',
+    padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
-  backLink: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    color: '#94a3b8',
-    textDecoration: 'none',
-    fontSize: '14px',
-    fontWeight: '600',
+  clearBtn: {
+    backgroundColor: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626',
+    padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
   },
-  userRole: {
-    fontSize: '13px',
-    color: '#cbd5e1',
+  smallOutlineBtn: {
+    backgroundColor: '#f1f5f9', border: '1.5px solid #cbd5e1', color: '#475569',
+    padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', whiteSpace: 'nowrap',
   },
-  main: {
-    padding: '40px 32px',
-    maxWidth: '1200px',
-    margin: '0 auto',
+  actionBtn: {
+    backgroundColor: '#f1f5f9', border: '1.5px solid #e2e8f0', color: '#374151',
+    padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
   },
-  titleRow: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: '32px',
+  closeBtn: {
+    background: 'none', border: 'none', cursor: 'pointer',
+    color: '#94a3b8', padding: 4,
   },
-  title: {
-    fontSize: '28px',
-    fontWeight: '800',
-    margin: 0,
-    background: 'linear-gradient(to right, #ffffff, #94a3b8)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-  },
-  card: {
-    background: 'rgba(15, 23, 42, 0.4)',
-    border: '1px solid rgba(255, 255, 255, 0.06)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
-  },
-  cardTitle: {
-    fontSize: '18px',
-    fontWeight: '700',
-    margin: '0 0 10px 0',
-  },
+
+  // Form card
   formCard: {
-    background: 'rgba(99, 102, 241, 0.04)',
-    border: '1px solid rgba(99, 102, 241, 0.2)',
-    borderRadius: '20px',
-    padding: '32px',
-    marginBottom: '32px',
+    backgroundColor: '#fff', border: '1.5px solid #bfdbfe',
+    borderRadius: 12, padding: 24, boxShadow: '0 2px 12px rgba(59,130,246,0.07)',
   },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '20px',
+  formCardHeader: {
+    display: 'flex', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 20,
   },
-  formGroup: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
+  formTitle: { fontSize: 15, fontWeight: 700, color: '#1e293b', margin: 0 },
+  formGrid3: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+    gap: 18, marginBottom: 20,
   },
-  formRow: {
-    display: 'flex',
-    gap: '20px',
-  },
-  formGroupHalf: {
-    flex: 1,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '8px',
-  },
-  label: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#94a3b8',
+  formGroup: { display: 'flex', flexDirection: 'column', gap: 6 },
+  btnRow: { display: 'flex', gap: 12 },
+  label: { fontSize: 12, fontWeight: 600, color: '#475569' },
+  input: {
+    backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0',
+    borderRadius: 8, color: '#1e293b', padding: '9px 12px',
+    fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box',
   },
   select: {
-    padding: '12px',
-    borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
+    backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0',
+    borderRadius: 8, color: '#1e293b', padding: '9px 12px',
+    fontSize: 13, outline: 'none', width: '100%', boxSizing: 'border-box',
   },
-  input: {
-    padding: '12px',
-    borderRadius: '8px',
-    backgroundColor: '#0f172a',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
-    color: '#f8fafc',
-    fontSize: '14px',
+  availablePreview: {
+    backgroundColor: '#f0fdf4', border: '1.5px solid #bbf7d0',
+    borderRadius: 8, color: '#16a34a', padding: '9px 14px',
+    fontSize: 14, fontWeight: 700,
   },
-  primaryBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '12px 24px',
-    backgroundColor: '#6366f1',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#ffffff',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
+
+  // Toolbar
+  toolbar: {
+    backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
+    borderRadius: 10, padding: '12px 16px',
+    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
   },
-  secondaryBtn: {
-    padding: '12px 24px',
-    backgroundColor: 'transparent',
-    border: '1px solid rgba(255, 255, 255, 0.15)',
-    borderRadius: '8px',
-    color: '#cbd5e1',
-    fontSize: '14px',
-    fontWeight: '600',
-    cursor: 'pointer',
+  searchBox: {
+    flex: 1, minWidth: 240, backgroundColor: '#f8fafc',
+    border: '1.5px solid #e2e8f0', borderRadius: 8,
+    padding: '0 12px', display: 'flex', alignItems: 'center',
   },
-  btnRow: {
-    display: 'flex',
-    gap: '12px',
+  searchInput: {
+    flex: 1, background: 'none', border: 'none',
+    color: '#1e293b', padding: '9px 0', fontSize: 13, outline: 'none',
   },
-  iconBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    padding: '6px 12px',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    border: '1px solid rgba(255,255,255,0.08)',
-    borderRadius: '6px',
-    color: '#cbd5e1',
-    fontSize: '12px',
-    fontWeight: '600',
-    cursor: 'pointer',
+  filterRow: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
+  filterSelect: {
+    backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0',
+    borderRadius: 8, color: '#475569', padding: '8px 14px',
+    fontSize: 13, outline: 'none', cursor: 'pointer',
   },
+
+  // Messages
   errorBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    color: '#f87171',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    backgroundColor: '#fee2e2', border: '1px solid #fecaca',
+    color: '#dc2626', borderRadius: 8, padding: '12px 16px', fontSize: 13,
   },
   successBox: {
-    padding: '16px',
-    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-    border: '1px solid rgba(34, 197, 94, 0.2)',
-    color: '#4ade80',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+    backgroundColor: '#dcfce7', border: '1px solid #bbf7d0',
+    color: '#16a34a', borderRadius: 8, padding: '12px 16px', fontSize: 13,
   },
-  warningBox: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '16px',
-    backgroundColor: 'rgba(234, 179, 8, 0.1)',
-    border: '1px solid rgba(234, 179, 8, 0.2)',
-    color: '#fde047',
-    borderRadius: '8px',
-    marginBottom: '24px',
-    fontSize: '14px',
+
+  // Table
+  tableCard: {
+    backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
+    borderRadius: 12, overflow: 'hidden',
+    boxShadow: '0 1px 6px rgba(0,0,0,0.04)',
   },
-  emptyText: {
-    color: '#94a3b8',
-    fontSize: '14px',
+  tableInfo: {
+    padding: '12px 20px', borderBottom: '1px solid #f1f5f9',
+    backgroundColor: '#f8fafc',
   },
-  tableWrapper: {
-    overflowX: 'auto',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-    textAlign: 'left',
-    fontSize: '14px',
-  },
+  tableCount: { fontSize: 12, fontWeight: 600, color: '#64748b' },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13 },
+  theadRow: { backgroundColor: '#f8fafc' },
   th: {
-    padding: '16px',
-    borderBottom: '1px solid rgba(255,255,255,0.08)',
-    color: '#94a3b8',
-    fontWeight: '600',
+    padding: '12px 16px', textAlign: 'left',
+    color: '#64748b', fontWeight: 700, fontSize: 11,
+    textTransform: 'uppercase', letterSpacing: '0.05em',
+    borderBottom: '1px solid #e2e8f0',
   },
-  tr: {
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
+  tr: { borderBottom: '1px solid #f1f5f9' },
+  td: { padding: '12px 16px', color: '#374151' },
+  tdBold: { padding: '12px 16px', fontWeight: 700, color: '#1e293b' },
+  tdSku: { padding: '12px 16px', fontWeight: 700, color: '#3b82f6', fontFamily: 'monospace' },
+  tdMono: { padding: '12px 16px', color: '#64748b', fontFamily: 'monospace', fontSize: 12 },
+  tdNum: { padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#374151' },
+
+  empty: {
+    padding: '60px 20px', textAlign: 'center',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
   },
-  td: {
-    padding: '16px',
-  },
-  tdSku: {
-    padding: '16px',
-    fontFamily: 'monospace',
-    color: '#38bdf8',
-  },
-  tdBatch: {
-    padding: '16px',
-    color: '#a5b4fc',
-  },
-  tdQty: {
-    padding: '16px',
-    fontWeight: '600',
-  },
-  tdQtyReserved: {
-    padding: '16px',
-    color: '#f87171',
-    fontWeight: '600',
-  },
-  tdQtyAvailable: {
-    padding: '16px',
-    color: '#4ade80',
-    fontWeight: '600',
-  },
+  emptyText: { color: '#94a3b8', fontSize: 14, margin: 0 },
 };
+
 export default Inventory;

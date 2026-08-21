@@ -124,6 +124,50 @@ export const api = {
     return res.json();
   },
 
+  async getCategories(): Promise<{ success: boolean; data: any[] }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/categories`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  async createCategory(payload: { name: string }): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create category');
+    return data;
+  },
+
+  async createItem(payload: { name: string; sku: string; categoryId: string }): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/items`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create item');
+    return data;
+  },
+
+  async createBatch(payload: { batchNumber: string; itemId: string }): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/batches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to create batch');
+    return data;
+  },
+
   async getInventory(): Promise<{ success: boolean; data: any[] }> {
     const token = this.getToken();
     const res = await fetch(`${BASE_URL}/inventory`, {

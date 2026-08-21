@@ -4,11 +4,13 @@ import api from '../services/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
   const [loading, setLoading] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyAuth = async () => {
@@ -20,7 +22,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       }
 
       try {
-        await api.getMe();
+        const profile = await api.getMe();
+        const user = profile.data.user;
+        setUserRole(user.role);
         setAuthenticated(true);
       } catch (err) {
         api.clearToken();
@@ -65,6 +69,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   if (!authenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

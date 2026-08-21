@@ -20,7 +20,7 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 
   try {
     const decoded = jwt.verify(token, config.JWT_SECRET) as JWTPayload;
-    req.user = {
+    (req as any).user = {
       id: decoded.id,
       email: decoded.email,
       role: decoded.role,
@@ -33,12 +33,12 @@ export const authenticate = (req: Request, res: Response, next: NextFunction): v
 
 export const authorizeRoles = (...roles: Role[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes((req as any).user.role)) {
       res.status(403).json({ success: false, message: 'Forbidden: Access denied' });
       return;
     }

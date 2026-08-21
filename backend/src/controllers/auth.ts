@@ -48,13 +48,13 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
 export const getMe = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    if (!req.user) {
+    if (!(req as any).user) {
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
+      where: { id: (req as any).user.id },
       select: {
         id: true,
         name: true,
