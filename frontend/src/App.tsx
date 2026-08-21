@@ -3,6 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import DashboardPlaceholder from './pages/DashboardPlaceholder';
+import Inventory from './pages/Inventory';
+import WorkOrders from './pages/WorkOrders';
+import Transfers from './pages/Transfers';
 
 export const App: React.FC = () => {
   return (
@@ -14,6 +17,30 @@ export const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <DashboardPlaceholder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/inventory"
+          element={
+            <ProtectedRoute>
+              <Inventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/work-orders"
+          element={
+            <ProtectedRoute>
+              <WorkOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/transfers"
+          element={
+            <ProtectedRoute>
+              <Transfers />
             </ProtectedRoute>
           }
         />

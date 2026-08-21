@@ -46,13 +46,13 @@ model Category {
 }
 
 model Item {
-  id         String       @id @default(uuid())
+  id         String      @id @default(uuid())
   name       String
-  sku        String       @unique
+  sku        String      @unique
   categoryId String
-  category   Category     @relation(fields: [categoryId], references: [id])
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  category   Category    @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
   batches    Batch[]
   inventory  Inventory[]
   workOrders WorkOrder[]
@@ -61,15 +61,15 @@ model Item {
 }
 
 model Location {
-  id                   String     @id @default(uuid())
+  id                   String      @id @default(uuid())
   name                 String
-  code                 String     @unique
-  createdAt            DateTime   @default(now())
-  updatedAt            DateTime   @updatedAt
+  code                 String      @unique
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
   inventory            Inventory[]
   workOrders           WorkOrder[]
-  sourceTransfers      Transfer[] @relation("SourceLocation")
-  destinationTransfers Transfer[] @relation("DestinationLocation")
+  sourceTransfers      Transfer[]  @relation("SourceLocation")
+  destinationTransfers Transfer[]  @relation("DestinationLocation")
 }
 
 model Batch {
@@ -80,6 +80,7 @@ model Batch {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   inventory   Inventory[]
+  Transfer    Transfer[]
 
   @@index([itemId])
 }
@@ -104,18 +105,18 @@ model Inventory {
 }
 
 model WorkOrder {
-  id                String          @id @default(uuid())
-  workOrderId       String          @unique
-  locationId        String
-  itemId            String
-  requiredQuantity  Int
-  assignedUserId    String
-  status            WorkOrderStatus
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  location          Location        @relation(fields: [locationId], references: [id])
-  item              Item            @relation(fields: [itemId], references: [id])
-  assignedUser      User            @relation(fields: [assignedUserId], references: [id])
+  id               String          @id @default(uuid())
+  workOrderId      String          @unique
+  locationId       String
+  itemId           String
+  requiredQuantity Int
+  assignedUserId   String
+  status           WorkOrderStatus
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  location         Location        @relation(fields: [locationId], references: [id])
+  item             Item            @relation(fields: [itemId], references: [id])
+  assignedUser     User            @relation(fields: [assignedUserId], references: [id])
 
   @@index([locationId])
   @@index([itemId])
@@ -128,18 +129,21 @@ model Transfer {
   sourceLocationId      String
   destinationLocationId String
   itemId                String
+  batchId               String?
   quantity              Int
   status                TransferStatus
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
 
-  sourceLocation      Location       @relation("SourceLocation", fields: [sourceLocationId], references: [id])
-  destinationLocation Location       @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
-  item                Item           @relation(fields: [itemId], references: [id])
+  sourceLocation      Location @relation("SourceLocation", fields: [sourceLocationId], references: [id])
+  destinationLocation Location @relation("DestinationLocation", fields: [destinationLocationId], references: [id])
+  item                Item     @relation(fields: [itemId], references: [id])
+  batch               Batch?   @relation(fields: [batchId], references: [id])
 
   @@index([sourceLocationId])
   @@index([destinationLocationId])
   @@index([itemId])
+  @@index([batchId])
 }
 
 model CustomerOrder {

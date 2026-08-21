@@ -6,8 +6,8 @@ OpsFlow ERP is a production-oriented, full-stack Operations Enterprise Resource 
 ---
 
 ## Current Phase
-**Phase 1 — Project Foundation, Database & Authentication**
-This phase focuses on the fundamental architecture, data model integration via Prisma ORM with PostgreSQL, JWT-based security middleware, and a responsive role-based access control (RBAC) test console.
+**Phase 2 — Core Logistics: Inventory, Work Orders & Stock Transfers**
+This phase implements real-time inventory management, shortage calculations, transaction-safe internal stock transfers with Row-Level Locking, work order lifecycle management, backend role verification (RBAC), React screens, and Jest integration tests.
 
 ---
 
@@ -30,21 +30,21 @@ opsflow-erp/
 │   │   └── seed.ts         # Idempotent Database Seeding
 │   ├── src/
 │   │   ├── config/         # Environment Validator (Zod)
-│   │   ├── controllers/    # Authentication Handlers
+│   │   ├── controllers/    # Auth, Inventory, Work Order & Transfer Handlers
 │   │   ├── middleware/     # Auth, RBAC & Error Handlers
 │   │   ├── routes/         # Router mounts
-│   │   ├── services/       # Prisma DB connection client
+│   │   ├── services/       # Prisma DB connection, Inventory business logic
 │   │   ├── types/          # Custom TypeScript declarations
 │   │   ├── validators/     # Zod Schemas
 │   │   └── app.ts          # Express App configuration
-│   ├── tests/              # Jest/Supertest Integrations
+│   ├── tests/              # Jest/Supertest Integrations (auth, phase2)
 │   ├── package.json
 │   └── tsconfig.json
 ├── frontend/
 │   ├── src/
 │   │   ├── components/     # ProtectedRoute Guard
-│   │   ├── pages/          # Login & Dashboard Views
-│   │   ├── services/       # API Auth Client
+│   │   ├── pages/          # Login, Dashboard, Inventory, Work Orders, Transfers
+│   │   ├── services/       # API Clients
 │   │   ├── App.tsx         # Router
 │   │   └── main.tsx        # Entrypoint
 │   ├── package.json
@@ -147,7 +147,27 @@ All users share the same development password: `OpsFlow@123`
 - `GET /api/auth/me` - Fetch authenticated user details (requires JWT)
 
 ### Phase 1 Role-Testing Endpoints
-These endpoints are designed specifically to verify role restrictions on the backend:
 - `GET /api/auth/admin-test` (Requires Role: `ADMIN`)
 - `GET /api/auth/operations-test` (Requires Role: `OPERATIONS`)
 - `GET /api/auth/sales-test` (Requires Role: `SALES`)
+
+### Phase 2 Core ERP Modules
+
+#### 1. Inventory Management (ADMIN / OPERATIONS only)
+- `GET /api/inventory` - Get all inventory records enriched with `availableQuantity`
+- `GET /api/inventory/:id` - Get specific inventory record details
+- `POST /api/inventory` - Create inventory record (validates quantities via Zod & business rules)
+- `PATCH /api/inventory/:id` - Update physical or reserved quantities (validates `reservedQuantity <= physicalQuantity`)
+
+#### 2. Work Orders (ADMIN only to create, OPERATIONS / ADMIN to view/process)
+- `GET /api/work-orders` - List all work orders with calculated shortage
+- `GET /api/work-orders/:id` - Fetch specific work order
+- `POST /api/work-orders` - Create work order (Calculates initial shortage. Doesn't deduct inventory yet)
+- `PATCH /api/work-orders/:id/status` - Advance status lifecycle (`ASSIGNED` → `IN_PROGRESS` → `COMPLETED`)
+
+#### 3. Stock Transfers (OPERATIONS / ADMIN only)
+- `GET /api/transfers` - List all stock transfer orders
+- `GET /api/transfers/:id` - Fetch specific stock transfer
+- `POST /api/transfers` - Create a transfer request (requires source/destination diff, quantity > 0)
+- `PATCH /api/transfers/:id/dispatch` - Dispatch transfer: Decreases source stock in a Prisma database transaction with Row Locking.
+- `PATCH /api/transfers/:id/receive` - Receive transfer: Increases destination stock in a database transaction. Protects against duplicate receipt.

@@ -68,6 +68,28 @@ export const DashboardPlaceholder: React.FC = () => {
 
       <main style={styles.main}>
         <div style={styles.grid}>
+          {/* ERP Modules Card */}
+          <div style={styles.card}>
+            <div style={styles.cardHeader}>
+              <Server size={20} color="#818cf8" style={{ marginRight: 8 }} />
+              <h2 style={styles.cardTitle}>Phase 2 Modules</h2>
+            </div>
+            <p style={styles.cardDescription}>
+              Access real-time stock control, schedule work orders, or manage internal warehouse transfers.
+            </p>
+            <div style={styles.testBtnGroup}>
+              <button onClick={() => navigate('/inventory')} style={styles.moduleBtn}>
+                Inventory Control
+              </button>
+              <button onClick={() => navigate('/work-orders')} style={styles.moduleBtn}>
+                Work Orders
+              </button>
+              <button onClick={() => navigate('/transfers')} style={styles.moduleBtn}>
+                Internal Stock Transfers
+              </button>
+            </div>
+          </div>
+
           {/* User Profile Card */}
           <div style={styles.card}>
             <div style={styles.cardHeader}>
@@ -324,6 +346,19 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid',
     borderRadius: '12px',
     padding: '16px',
+  },
+  moduleBtn: {
+    width: '100%',
+    padding: '12px',
+    borderRadius: '10px',
+    border: '1px solid rgba(99, 102, 241, 0.3)',
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    color: '#a5b4fc',
+    fontSize: '14px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    textAlign: 'center',
   },
 };
 export default DashboardPlaceholder;
