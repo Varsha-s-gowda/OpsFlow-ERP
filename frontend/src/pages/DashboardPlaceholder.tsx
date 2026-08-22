@@ -421,7 +421,7 @@ export const DashboardPlaceholder: React.FC = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie data={woPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={2}>
-                          {woPieData.map((entry, index) => (
+                          {woPieData.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={['#60a5fa', '#34d399', '#fbbf24', '#f87171'][index % 4]} />
                           ))}
                         </Pie>
@@ -450,7 +450,7 @@ export const DashboardPlaceholder: React.FC = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={transferPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={2}>
-                        {transferPieData.map((entry, index) => (
+                        {transferPieData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={['#a78bfa', '#f472b6', '#34d399', '#60a5fa'][index % 4]} />
                         ))}
                       </Pie>
