@@ -74,7 +74,7 @@ export const api = {
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const data = await apiFetch(${BASE_URL}/auth/login, {
+    const data = await apiFetch(`${BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
@@ -88,187 +88,187 @@ export const api = {
   async getMe(): Promise<MeResponse> {
     const token = this.getToken();
     if (!token) throw new Error('No authentication token found');
-    return apiFetch(${BASE_URL}/auth/me, {
+    return apiFetch(`${BASE_URL}/auth/me`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     });
   },
 
   async getItems(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/items, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/items`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async getLocations(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/locations, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/locations`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async getBatches(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/batches, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/batches`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async getUsers(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/users, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/users`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async getCategories(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/categories, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/categories`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async createCategory(payload: { name: string }): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/categories, {
+    return apiFetch(`${BASE_URL}/categories`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async createItem(payload: { name: string; sku: string; categoryId: string }): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/items, {
+    return apiFetch(`${BASE_URL}/items`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async createBatch(payload: { batchNumber: string; itemId: string }): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/batches, {
+    return apiFetch(`${BASE_URL}/batches`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async getInventory(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/inventory, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/inventory`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async createInventory(payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/inventory, {
+    return apiFetch(`${BASE_URL}/inventory`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async updateInventory(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/inventory/, {
+    return apiFetch(`${BASE_URL}/inventory/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async deleteInventory(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/inventory/, {
+    return apiFetch(`${BASE_URL}/inventory/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   },
 
   async getWorkOrders(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/work-orders, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/work-orders`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async createWorkOrder(payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/work-orders, {
+    return apiFetch(`${BASE_URL}/work-orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async updateWorkOrderStatus(id: string, status: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/work-orders//status, {
+    return apiFetch(`${BASE_URL}/work-orders/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify({ status }),
     });
   },
 
   async updateWorkOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/work-orders/, {
+    return apiFetch(`${BASE_URL}/work-orders/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async deleteWorkOrder(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/work-orders/, {
+    return apiFetch(`${BASE_URL}/work-orders/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   },
 
   async getTransfers(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/transfers, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/transfers`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async createTransfer(payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/transfers, {
+    return apiFetch(`${BASE_URL}/transfers`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async dispatchTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/transfers//dispatch, {
+    return apiFetch(`${BASE_URL}/transfers/${id}/dispatch`, {
       method: 'PATCH',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   },
 
   async receiveTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/transfers//receive, {
+    return apiFetch(`${BASE_URL}/transfers/${id}/receive`, {
       method: 'PATCH',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   },
 
   async updateTransfer(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/transfers/, {
+    return apiFetch(`${BASE_URL}/transfers/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async deleteTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/transfers/, {
+    return apiFetch(`${BASE_URL}/transfers/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   },
 
   async getOrders(): Promise<{ success: boolean; data: any[] }> {
-    return apiFetch(${BASE_URL}/orders, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/orders`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async createOrder(payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/orders, {
+    return apiFetch(`${BASE_URL}/orders`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async getOrderById(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/orders/, { headers: { Authorization: Bearer  } });
+    return apiFetch(`${BASE_URL}/orders/${id}`, { headers: { Authorization: `Bearer ${this.getToken()}` } });
   },
 
   async updateOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/orders/, {
+    return apiFetch(`${BASE_URL}/orders/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${this.getToken()}` },
       body: JSON.stringify(payload),
     });
   },
 
   async deleteOrder(id: string): Promise<{ success: boolean; data: any }> {
-    return apiFetch(${BASE_URL}/orders/, {
+    return apiFetch(`${BASE_URL}/orders/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: Bearer  },
+      headers: { Authorization: `Bearer ${this.getToken()}` },
     });
   }
 };
