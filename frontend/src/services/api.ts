@@ -22,6 +22,43 @@ export interface MeResponse {
   };
 }
 
+const GET_CACHE = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 30000; // 30 seconds
+
+function clearCache() {
+  GET_CACHE.clear();
+}
+
+async function apiFetch(url: string, options?: RequestInit) {
+  const isGet = !options?.method || options.method === 'GET';
+  
+  if (isGet) {
+    const now = Date.now();
+    if (GET_CACHE.has(url)) {
+      const cached = GET_CACHE.get(url)!;
+      if (now - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+      }
+    }
+  } else {
+    // Clear cache on any mutation (POST, PATCH, DELETE) to ensure fresh data
+    clearCache();
+  }
+
+  const res = await fetch(url, options);
+  const data = await res.json();
+  
+  if (!res.ok) {
+    throw new Error(data.message || 'API request failed');
+  }
+
+  if (isGet) {
+    GET_CACHE.set(url, { data, timestamp: Date.now() });
+  }
+
+  return data;
+}
+
 export const api = {
   getToken(): string | null {
     return localStorage.getItem('opsflow_token');
@@ -33,20 +70,15 @@ export const api = {
 
   clearToken() {
     localStorage.removeItem('opsflow_token');
+    clearCache();
   },
 
   async login(email: string, password: string): Promise<AuthResponse> {
-    const res = await fetch(`${BASE_URL}/auth/login`, {
+    const data = await apiFetch(${BASE_URL}/auth/login, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || 'Login failed');
-    }
-
     if (data.success && data.data?.token) {
       this.setToken(data.data.token);
     }
@@ -55,364 +87,189 @@ export const api = {
 
   async getMe(): Promise<MeResponse> {
     const token = this.getToken();
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const res = await fetch(`${BASE_URL}/auth/me`, {
+    if (!token) throw new Error('No authentication token found');
+    return apiFetch(${BASE_URL}/auth/me, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
     });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || 'Failed to fetch user');
-    }
-
-    return data;
-  },
-
-  async testRoleEndpoint(role: 'admin' | 'operations' | 'sales'): Promise<{ success: boolean; message: string }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/auth/${role}-test`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || `Failed to access ${role} test endpoint`);
-    }
-
-    return data;
   },
 
   async getItems(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/items`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    return apiFetch(${BASE_URL}/items, { headers: { Authorization: Bearer  } });
   },
 
   async getLocations(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/locations`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    return apiFetch(${BASE_URL}/locations, { headers: { Authorization: Bearer  } });
   },
 
   async getBatches(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/batches`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    return apiFetch(${BASE_URL}/batches, { headers: { Authorization: Bearer  } });
   },
 
   async getUsers(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/users`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    return apiFetch(${BASE_URL}/users, { headers: { Authorization: Bearer  } });
   },
 
   async getCategories(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/categories`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    return res.json();
+    return apiFetch(${BASE_URL}/categories, { headers: { Authorization: Bearer  } });
   },
 
   async createCategory(payload: { name: string }): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/categories`, {
+    return apiFetch(${BASE_URL}/categories, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create category');
-    return data;
   },
 
   async createItem(payload: { name: string; sku: string; categoryId: string }): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/items`, {
+    return apiFetch(${BASE_URL}/items, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create item');
-    return data;
   },
 
   async createBatch(payload: { batchNumber: string; itemId: string }): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/batches`, {
+    return apiFetch(${BASE_URL}/batches, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create batch');
-    return data;
   },
 
   async getInventory(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/inventory`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch inventory');
-    return data;
+    return apiFetch(${BASE_URL}/inventory, { headers: { Authorization: Bearer  } });
   },
 
   async createInventory(payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/inventory`, {
+    return apiFetch(${BASE_URL}/inventory, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create inventory record');
-    return data;
   },
 
   async updateInventory(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/inventory/${id}`, {
+    return apiFetch(${BASE_URL}/inventory/, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update inventory record');
-    return data;
   },
 
   async deleteInventory(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/inventory/${id}`, {
+    return apiFetch(${BASE_URL}/inventory/, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: Bearer  },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to delete inventory record');
-    return data;
   },
 
   async getWorkOrders(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/work-orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch work orders');
-    return data;
+    return apiFetch(${BASE_URL}/work-orders, { headers: { Authorization: Bearer  } });
   },
 
   async createWorkOrder(payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/work-orders`, {
+    return apiFetch(${BASE_URL}/work-orders, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create work order');
-    return data;
   },
 
   async updateWorkOrderStatus(id: string, status: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/work-orders/${id}/status`, {
+    return apiFetch(${BASE_URL}/work-orders//status, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify({ status }),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update work order status');
-    return data;
+  },
+
+  async updateWorkOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
+    return apiFetch(${BASE_URL}/work-orders/, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteWorkOrder(id: string): Promise<{ success: boolean; data: any }> {
+    return apiFetch(${BASE_URL}/work-orders/, {
+      method: 'DELETE',
+      headers: { Authorization: Bearer  },
+    });
   },
 
   async getTransfers(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/transfers`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch transfers');
-    return data;
+    return apiFetch(${BASE_URL}/transfers, { headers: { Authorization: Bearer  } });
   },
 
   async createTransfer(payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/transfers`, {
+    return apiFetch(${BASE_URL}/transfers, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create transfer');
-    return data;
   },
 
   async dispatchTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/transfers/${id}/dispatch`, {
+    return apiFetch(${BASE_URL}/transfers//dispatch, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: Bearer  },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to dispatch transfer');
-    return data;
   },
 
   async receiveTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/transfers/${id}/receive`, {
+    return apiFetch(${BASE_URL}/transfers//receive, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: Bearer  },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to receive transfer');
-    return data;
+  },
+
+  async updateTransfer(id: string, payload: any): Promise<{ success: boolean; data: any }> {
+    return apiFetch(${BASE_URL}/transfers/, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async deleteTransfer(id: string): Promise<{ success: boolean; data: any }> {
+    return apiFetch(${BASE_URL}/transfers/, {
+      method: 'DELETE',
+      headers: { Authorization: Bearer  },
+    });
   },
 
   async getOrders(): Promise<{ success: boolean; data: any[] }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/orders`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch customer orders');
-    return data;
+    return apiFetch(${BASE_URL}/orders, { headers: { Authorization: Bearer  } });
   },
 
   async createOrder(payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/orders`, {
+    return apiFetch(${BASE_URL}/orders, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to create customer order');
-    return data;
   },
 
   async getOrderById(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`${BASE_URL}/orders/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to fetch customer order details');
-    return data;
+    return apiFetch(${BASE_URL}/orders/, { headers: { Authorization: Bearer  } });
   },
+
   async updateOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/orders/` + id, {
+    return apiFetch(${BASE_URL}/orders/, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
+      headers: { 'Content-Type': 'application/json', Authorization: Bearer  },
       body: JSON.stringify(payload),
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update order');
-    return data;
   },
+
   async deleteOrder(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/orders/` + id, {
+    return apiFetch(${BASE_URL}/orders/, {
       method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token },
+      headers: { Authorization: Bearer  },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to delete order');
-    return data;
-  },
-  async updateWorkOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/work-orders/` + id, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update work order');
-    return data;
-  },
-  async deleteWorkOrder(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/work-orders/` + id, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to delete work order');
-    return data;
-  },
-  async updateTransfer(id: string, payload: any): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/transfers/` + id, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + token,
-      },
-      body: JSON.stringify(payload),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to update transfer');
-    return data;
-  },
-  async deleteTransfer(id: string): Promise<{ success: boolean; data: any }> {
-    const token = this.getToken();
-    const res = await fetch(`/transfers/` + id, {
-      method: 'DELETE',
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || 'Failed to delete transfer');
-    return data;
-  },
+  }
 };
 export default api;
