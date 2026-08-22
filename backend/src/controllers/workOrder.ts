@@ -202,3 +202,13 @@ export const updateWorkOrderStatus = async (req: Request, res: Response, next: N
     next(error);
   }
 };
+
+export const deleteWorkOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.workOrder.delete({ where: { id } });
+    res.status(200).json({ success: true, data: { id } });
+  } catch (error) {
+    next(error);
+  }
+};

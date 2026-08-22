@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, HelpCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Settings, TrendingUp } from 'lucide-react';
 import api from '../services/api';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -36,33 +37,45 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div style={s.page}>
-      {/* ── Main card ── */}
-      <div style={s.card}>
-
-        {/* Logo + Title */}
-        <div style={s.logoWrap}>
-          <div style={s.logoBox}>
-            {/* Arrow/flow icon matching screenshot */}
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <div style={s.layout}>
+      {/* LEFT PANE */}
+      <div style={s.leftPane}>
+        <div style={s.logoBox}>
+          <div style={s.logoIcon}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </div>
+          <span style={s.logoText}>OpsFlow ERP</span>
         </div>
-        <h1 style={s.title}>OpsFlow ERP</h1>
-        <p style={s.subtitle}>Enter credentials to access the enterprise<br />platform</p>
+        
+        <div style={s.textContent}>
+          <h1 style={s.headline}>
+            Move Freight.<br />
+            <span style={s.headlineGradient}>Manage Everything.</span>
+          </h1>
+          <p style={s.subhead}>
+            One intelligent platform for warehouse operations, inventory management, dispatch tracking, and transport analytics.
+          </p>
+        </div>
 
-        {/* Error */}
-        {error && <div style={s.errorBox}>{error}</div>}
+        <div style={s.footerText}>
+          � 2026 OpsFlow ERP Enterprise Terminal. All rights reserved.
+        </div>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleLogin} style={s.form}>
-          <div style={s.fieldGroup}>
-            <label style={s.label}>Email Address</label>
-            <div style={s.inputWrap}>
-              <Mail size={16} color="#94a3b8" style={s.icon} />
+      {/* RIGHT PANE */}
+      <div style={s.rightPane}>
+        <div style={s.loginCard}>
+          <h2 style={s.cardTitle}>Sign In</h2>
+          <p style={s.cardSubtitle}>ENTER YOUR TERMINAL CREDENTIALS</p>
+
+          {error && <div style={s.errorBox}>{error}</div>}
+
+          <form onSubmit={handleLogin} style={s.form}>
+            <div style={s.fieldGroup}>
+              <label style={s.label}>USERNAME / EMAIL</label>
               <input
-                id="email"
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -71,285 +84,299 @@ export const Login: React.FC = () => {
                 style={s.input}
               />
             </div>
-          </div>
 
-          <div style={s.fieldGroup}>
-            <label style={s.label}>Password</label>
-            <div style={s.inputWrap}>
-              <Lock size={16} color="#94a3b8" style={s.icon} />
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                style={s.input}
-              />
+            <div style={s.fieldGroup}>
+              <label style={s.label}>PASSWORD</label>
+              <div style={s.inputWrap}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="��������"
+                  required
+                  style={s.input}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={s.eyeBtn}>
+                  {showPassword ? <EyeOff size={16} color="#94a3b8" /> : <Eye size={16} color="#94a3b8" />}
+                </button>
+              </div>
             </div>
+
+            <div style={s.optionsRow}>
+              <label style={s.checkboxWrap}>
+                <input type="checkbox" style={s.checkbox} />
+                <span style={s.checkboxLabel}>Remember Me</span>
+              </label>
+              <a href="#" style={s.forgotLink}>Forgot Password?</a>
+            </div>
+
+            <button type="submit" disabled={loading} style={s.submitBtn}>
+              {loading ? 'Logging in...' : 'Login ?'}
+            </button>
+          </form>
+
+          <div style={s.divider}>
+            <span style={s.dividerText}>ROLE TERMINALS</span>
           </div>
 
-          <button
-            id="sign-in-btn"
-            type="submit"
-            disabled={loading}
-            style={{ ...s.signInBtn, opacity: loading ? 0.75 : 1 }}
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
-
-        {/* Demo Credentials */}
-        <div style={s.demoSectionLabel}>DEMO ACCESS CREDENTIALS</div>
-        <div style={s.demoBox}>
-          <p style={s.demoHint}>Select a role to autofill:</p>
-          <div style={s.chipRow}>
-            <button onClick={() => handleAutoFill('admin')} style={s.chip}>Admin</button>
-            <button onClick={() => handleAutoFill('operations')} style={s.chip}>Operations</button>
-            <button onClick={() => handleAutoFill('sales')} style={s.chip}>Sales</button>
-          </div>
-          <div style={s.pwHint}>
-            <HelpCircle size={13} color="#94a3b8" style={{ marginRight: 5, flexShrink: 0 }} />
-            <span>Password: <strong>OpsFlow@123</strong></span>
+          <div style={s.roleGrid}>
+            <button type="button" onClick={() => handleAutoFill('admin')} style={s.roleCard}>
+              <div style={{...s.roleIconBox, color: '#475569', backgroundColor: '#f1f5f9'}}><User size={18} /></div>
+              <span style={s.roleText}>ADMIN</span>
+            </button>
+            <button type="button" onClick={() => handleAutoFill('operations')} style={s.roleCard}>
+              <div style={{...s.roleIconBox, color: '#475569', backgroundColor: '#f1f5f9'}}><Settings size={18} /></div>
+              <span style={s.roleText}>OPS</span>
+            </button>
+            <button type="button" onClick={() => handleAutoFill('sales')} style={s.roleCard}>
+              <div style={{...s.roleIconBox, color: '#475569', backgroundColor: '#f1f5f9'}}><TrendingUp size={18} /></div>
+              <span style={s.roleText}>SALES</span>
+            </button>
           </div>
         </div>
       </div>
-
-      {/* ── Footer ── */}
-      <footer style={s.footer}>
-        <div style={s.footerTitle}>OpsFlow ERP</div>
-        <p style={s.footerCopy}>© 2024 OpsFlow ERP. All rights reserved. Precision Enterprise Systems.</p>
-        <div style={s.footerLinks}>
-          <a href="#" style={s.footerLink}>Security</a>
-          <a href="#" style={s.footerLink}>Terms of Service</a>
-          <a href="#" style={s.footerLink}>Privacy Policy</a>
-        </div>
-        <div style={s.footerStatus}>
-          <span style={s.statusDot} /> System Status
-        </div>
-      </footer>
     </div>
   );
 };
 
 const s: Record<string, React.CSSProperties> = {
-  page: {
+  layout: {
+    display: 'flex',
     minHeight: '100vh',
-    backgroundColor: '#3b5bdb',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
-    padding: '24px 16px',
-    gap: 24,
   },
-
-  // Card
-  card: {
-    width: '100%',
-    maxWidth: 360,
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: '36px 28px 28px',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+  leftPane: {
+    flex: 1,
+    background: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '40px 60px',
+    color: '#ffffff',
   },
-
-  // Logo
-  logoWrap: { marginBottom: 14 },
   logoBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 12,
-    backgroundColor: '#3b5bdb',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: '10px 20px',
+    borderRadius: '12px',
+    width: 'fit-content',
+    border: '1px solid rgba(255,255,255,0.1)'
+  },
+  logoIcon: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
   },
-
-  title: {
-    fontSize: 22,
-    fontWeight: 700,
-    color: '#1a1a2e',
-    margin: '0 0 6px 0',
-    textAlign: 'center',
+  logoText: {
+    fontSize: '18px',
+    fontWeight: '700',
+    letterSpacing: '0.5px'
   },
-  subtitle: {
-    fontSize: 13,
-    color: '#3b5bdb',
-    textAlign: 'center',
-    lineHeight: 1.5,
-    margin: '0 0 24px 0',
+  textContent: {
+    maxWidth: '560px',
   },
-
-  // Error
+  headline: {
+    fontSize: '56px',
+    fontWeight: '800',
+    lineHeight: 1.1,
+    margin: '0 0 20px 0',
+  },
+  headlineGradient: {
+    background: 'linear-gradient(90deg, #f8fafc 0%, #94a3b8 100%)',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+  },
+  subhead: {
+    fontSize: '17px',
+    color: '#94a3b8',
+    lineHeight: 1.6,
+  },
+  footerText: {
+    fontSize: '12px',
+    color: '#64748b',
+  },
+  rightPane: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
+    backgroundSize: '24px 24px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px'
+  },
+  loginCard: {
+    backgroundColor: '#ffffff',
+    width: '100%',
+    maxWidth: '440px',
+    padding: '48px',
+    borderRadius: '24px',
+    boxShadow: '0 20px 40px rgba(0,0,0,0.08)',
+  },
+  cardTitle: {
+    fontSize: '28px',
+    fontWeight: '800',
+    color: '#0f172a',
+    margin: '0 0 4px 0',
+  },
+  cardSubtitle: {
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#94a3b8',
+    letterSpacing: '1px',
+    textTransform: 'uppercase',
+    margin: '0 0 32px 0',
+  },
   errorBox: {
-    width: '100%',
-    backgroundColor: '#fff0f0',
-    border: '1px solid #ffc9c9',
-    color: '#c92a2a',
-    borderRadius: 8,
-    padding: '10px 14px',
-    fontSize: 13,
-    marginBottom: 16,
-    textAlign: 'center',
-    boxSizing: 'border-box',
+    backgroundColor: '#fef2f2',
+    color: '#ef4444',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    marginBottom: '20px',
+    border: '1px solid #fecaca',
   },
-
-  // Form
   form: {
-    width: '100%',
     display: 'flex',
     flexDirection: 'column',
-    gap: 16,
-    marginBottom: 24,
+    gap: '20px',
   },
   fieldGroup: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 6,
-    width: '100%',
+    gap: '8px',
   },
   label: {
-    fontSize: 13,
-    fontWeight: 600,
-    color: '#374151',
+    fontSize: '11px',
+    fontWeight: '700',
+    color: '#475569',
+    letterSpacing: '0.5px',
   },
   inputWrap: {
     position: 'relative',
     display: 'flex',
-    alignItems: 'center',
-  },
-  icon: {
-    position: 'absolute',
-    left: 12,
-    flexShrink: 0,
+    width: '100%',
   },
   input: {
     width: '100%',
-    padding: '11px 14px 11px 38px',
-    border: '1.5px solid #d1d5db',
-    borderRadius: 8,
-    fontSize: 14,
-    color: '#111827',
-    backgroundColor: '#ffffff',
+    padding: '12px 16px',
+    borderRadius: '10px',
+    border: '1px solid #e2e8f0',
+    fontSize: '14px',
     outline: 'none',
     boxSizing: 'border-box',
+    color: '#1e293b',
+    backgroundColor: '#f8fafc',
+    transition: 'border-color 0.2s',
   },
-  signInBtn: {
-    width: '100%',
-    padding: '13px',
-    backgroundColor: '#3b5bdb',
-    color: '#ffffff',
+  eyeBtn: {
+    position: 'absolute',
+    right: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    background: 'none',
     border: 'none',
-    borderRadius: 8,
-    fontSize: 15,
-    fontWeight: 600,
     cursor: 'pointer',
-    marginTop: 4,
-    letterSpacing: 0.3,
-  },
-
-  // Demo section
-  demoSectionLabel: {
-    width: '100%',
-    textAlign: 'center',
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#9ca3af',
-    letterSpacing: '0.08em',
-    marginBottom: 12,
-  },
-  demoBox: {
-    width: '100%',
-    backgroundColor: '#f9fafb',
-    border: '1px solid #e5e7eb',
-    borderRadius: 10,
-    padding: '14px 16px',
+    padding: '4px',
     display: 'flex',
-    flexDirection: 'column',
     alignItems: 'center',
-    gap: 10,
-  },
-  demoHint: {
-    fontSize: 12,
-    fontWeight: 600,
-    color: '#374151',
-    margin: 0,
-  },
-  chipRow: {
-    display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  chip: {
-    padding: '5px 14px',
-    borderRadius: 20,
-    backgroundColor: '#ffffff',
-    border: '1.5px solid #d1d5db',
-    color: '#374151',
-    fontSize: 13,
-    fontWeight: 600,
+  optionsRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '4px',
+  },
+  checkboxWrap: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
     cursor: 'pointer',
   },
-  pwHint: {
-    display: 'flex',
-    alignItems: 'center',
-    fontSize: 12,
-    color: '#6b7280',
+  checkbox: {
+    width: '14px',
+    height: '14px',
   },
-
-  // Footer
-  footer: {
-    width: '100%',
-    maxWidth: 360,
-    textAlign: 'center',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 6,
+  checkboxLabel: {
+    fontSize: '12px',
+    fontWeight: '600',
+    color: '#1e293b',
   },
-  footerTitle: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#374151',
-  },
-  footerCopy: {
-    fontSize: 11,
-    color: '#9ca3af',
-    margin: 0,
-    lineHeight: 1.6,
-  },
-  footerLinks: {
-    display: 'flex',
-    gap: 16,
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-  },
-  footerLink: {
-    fontSize: 12,
-    color: '#6b7280',
+  forgotLink: {
+    fontSize: '12px',
+    fontWeight: '700',
+    color: '#334155',
     textDecoration: 'none',
   },
-  footerStatus: {
+  submitBtn: {
+    width: '100%',
+    padding: '14px',
+    backgroundColor: '#334155',
+    background: 'linear-gradient(90deg, #475569 0%, #1e293b 100%)',
+    color: '#ffffff',
+    border: 'none',
+    borderRadius: '10px',
+    fontSize: '15px',
+    fontWeight: '700',
+    cursor: 'pointer',
+    marginTop: '12px',
+    boxShadow: '0 8px 16px rgba(15, 23, 42, 0.25)',
+  },
+  divider: {
     display: 'flex',
     alignItems: 'center',
-    gap: 5,
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 2,
+    textAlign: 'center',
+    margin: '32px 0 24px',
+    borderTop: '1px solid #e2e8f0',
+    position: 'relative',
   },
-  statusDot: {
-    display: 'inline-block',
-    width: 7,
-    height: 7,
+  dividerText: {
+    position: 'absolute',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    backgroundColor: '#ffffff',
+    padding: '0 12px',
+    fontSize: '10px',
+    fontWeight: '800',
+    color: '#94a3b8',
+    letterSpacing: '1px',
+  },
+  roleGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap: '12px',
+  },
+  roleCard: {
+    backgroundColor: '#ffffff',
+    border: '1px solid #f1f5f9',
+    borderRadius: '12px',
+    padding: '16px 10px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '10px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+    transition: 'transform 0.2s',
+  },
+  roleIconBox: {
+    width: '36px',
+    height: '36px',
     borderRadius: '50%',
-    backgroundColor: '#22c55e',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  roleText: {
+    fontSize: '11px',
+    fontWeight: '800',
+    color: '#1e293b',
+    letterSpacing: '0.5px',
+  }
 };
 
 export default Login;

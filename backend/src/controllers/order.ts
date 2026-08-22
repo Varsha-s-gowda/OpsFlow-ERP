@@ -254,3 +254,28 @@ export const getOrderById = async (req: Request, res: Response, next: NextFuncti
     next(error);
   }
 };
+
+export const updateOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updated = await prisma.customerOrder.update({
+      where: { id },
+      data: { status }
+    });
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteOrder = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.orderItem.deleteMany({ where: { orderId: id } });
+    await prisma.customerOrder.delete({ where: { id } });
+    res.status(200).json({ success: true, data: { id } });
+  } catch (error) {
+    next(error);
+  }
+};

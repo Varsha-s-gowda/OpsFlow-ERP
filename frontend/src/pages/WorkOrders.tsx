@@ -189,7 +189,7 @@ export const WorkOrders: React.FC = () => {
                   <label style={styles.label}>Work Order ID (Unique identifier)</label>
                   <input
                     type="text"
-                    placeholder="e.g., WO-2026-001"
+                    placeholder="e.g., 001"
                     value={workOrderId}
                     onChange={(e) => setWorkOrderId(e.target.value)}
                     style={styles.input}
@@ -321,9 +321,9 @@ export const WorkOrders: React.FC = () => {
                   {filteredWorkOrders.map((wo: any) => {
                     const statusColor =
                       wo.status === 'COMPLETED'
-                        ? '#10b981'
+                        ? '#475569'
                         : wo.status === 'IN_PROGRESS'
-                        ? '#3b82f6'
+                        ? '#475569'
                         : '#94a3b8';
 
                     return (
@@ -410,10 +410,10 @@ const styles: Record<string, React.CSSProperties> = {
   filterGroup: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
   filterSelect: { backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '8px', color: '#475569', padding: '9px 14px', fontSize: '13px', outline: 'none', cursor: 'pointer' },
   clearBtn: { backgroundColor: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '9px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
-  primaryBtn: { backgroundColor: '#3b5bdb', border: 'none', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
+  primaryBtn: { backgroundColor: '#334155', border: 'none', color: '#ffffff', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
   card: { backgroundColor: '#ffffff', border: '1.5px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' },
   cardTitle: { fontSize: '15px', fontWeight: '700', margin: '0 0 20px 0', color: '#1e293b' },
-  formCard: { backgroundColor: '#fff', border: '1.5px solid #bfdbfe', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 12px rgba(59,130,246,0.06)' },
+  formCard: { backgroundColor: '#fff', border: '1.5px solid #cbd5e1', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 12px rgba(59,130,246,0.06)' },
   formGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '20px' },
   formGroup: { display: 'flex', flexDirection: 'column', gap: '6px' },
   formRow: { display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'center' },
@@ -424,7 +424,7 @@ const styles: Record<string, React.CSSProperties> = {
   select: { backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '8px', color: '#1e293b', padding: '10px 12px', fontSize: '13px', outline: 'none' },
   input: { backgroundColor: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: '8px', color: '#1e293b', padding: '10px 12px', fontSize: '13px', outline: 'none' },
   btnRow: { display: 'flex', gap: '12px' },
-  submitBtn: { backgroundColor: '#3b5bdb', border: 'none', borderRadius: '8px', color: '#ffffff', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
+  submitBtn: { backgroundColor: '#334155', border: 'none', borderRadius: '8px', color: '#ffffff', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
   cancelBtn: { backgroundColor: '#fff', border: '1.5px solid #e2e8f0', borderRadius: '8px', color: '#64748b', padding: '10px 20px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' },
   errorBox: { backgroundColor: '#fee2e2', border: '1px solid #fecaca', color: '#dc2626', borderRadius: '8px', padding: '12px 16px', fontSize: '13px' },
   successBox: { backgroundColor: '#dcfce7', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: '8px', padding: '12px 16px', fontSize: '13px' },
@@ -441,7 +441,7 @@ const styles: Record<string, React.CSSProperties> = {
   tdQty: { padding: '12px 16px', textAlign: 'right', color: '#374151', fontWeight: '600' },
   tdQtyAvailable: { padding: '12px 16px', textAlign: 'right', color: '#64748b', fontWeight: '500' },
   actionButtonGroup: { display: 'flex', justifyContent: 'flex-end', gap: '6px' },
-  actionBtn: { backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', color: '#3b5bdb', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
+  actionBtn: { backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', color: '#334155', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
   successActionBtn: { backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' },
   completedText: { fontSize: '12px', color: '#94a3b8', fontWeight: '600' }
 };

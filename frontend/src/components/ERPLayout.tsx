@@ -94,7 +94,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
                 className="nav-link-item"
                 style={{
                   ...s.navLink,
-                  backgroundColor: active ? '#3b5bdb' : 'transparent',
+                  backgroundColor: active ? '#334155' : 'transparent',
                   color: active ? '#ffffff' : '#475569',
                   fontWeight: active ? 700 : 500,
                 }}
@@ -112,7 +112,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
         {user && (
           <div style={s.userSection}>
             <div style={s.userAvatar}>
-              <User size={16} color="#3b5bdb" />
+              <User size={16} color="#334155" />
             </div>
             <div style={s.userInfo}>
               <div style={s.userName}>{user.name}</div>
@@ -149,7 +149,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
               <span style={s.statusText}>Systems Connected</span>
             </div>
             <button className="header-icon-btn" style={s.iconBtn}><Bell size={18} color="#64748b" /></button>
-            <button className="header-icon-btn" style={s.iconBtn}><Settings size={18} color="#64748b" /></button>
+            <button className="header-icon-btn" style={s.iconBtn} onClick={() => navigate('/settings')}><Settings size={18} color="#64748b" /></button>
             {user && (
               <div style={s.headerAvatar}>
                 {user.name.charAt(0).toUpperCase()}
@@ -201,7 +201,7 @@ const s: Record<string, React.CSSProperties> = {
     width: 36,
     height: 36,
     borderRadius: 9,
-    backgroundColor: '#3b5bdb',
+    backgroundColor: '#334155',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -254,7 +254,7 @@ const s: Record<string, React.CSSProperties> = {
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-    border: '1.5px solid #bfdbfe',
+    border: '1.5px solid #cbd5e1',
   },
   userInfo: {
     flex: 1,
@@ -270,7 +270,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   userRole: {
     fontSize: 10,
-    color: '#3b5bdb',
+    color: '#334155',
     fontWeight: 700,
     textTransform: 'uppercase',
     letterSpacing: '0.04em',
@@ -321,7 +321,7 @@ const s: Record<string, React.CSSProperties> = {
     fontSize: 11,
   },
   breadHome: { color: '#94a3b8', fontWeight: 500 },
-  breadCurrent: { color: '#3b5bdb', fontWeight: 600 },
+  breadCurrent: { color: '#334155', fontWeight: 600 },
   pageTitle: {
     fontSize: 18,
     fontWeight: 700,
@@ -371,7 +371,7 @@ const s: Record<string, React.CSSProperties> = {
     width: 34,
     height: 34,
     borderRadius: '50%',
-    backgroundColor: '#3b5bdb',
+    backgroundColor: '#334155',
     color: '#fff',
     display: 'flex',
     alignItems: 'center',

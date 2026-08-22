@@ -208,6 +208,19 @@ export const api = {
     return data;
   },
 
+  async deleteInventory(id: string): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`${BASE_URL}/inventory/${id}`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to delete inventory record');
+    return data;
+  },
+
   async getWorkOrders(): Promise<{ success: boolean; data: any[] }> {
     const token = this.getToken();
     const res = await fetch(`${BASE_URL}/work-orders`, {
@@ -327,6 +340,78 @@ export const api = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || 'Failed to fetch customer order details');
+    return data;
+  },
+  async updateOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/orders/` + id, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update order');
+    return data;
+  },
+  async deleteOrder(id: string): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/orders/` + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to delete order');
+    return data;
+  },
+  async updateWorkOrder(id: string, payload: any): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/work-orders/` + id, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update work order');
+    return data;
+  },
+  async deleteWorkOrder(id: string): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/work-orders/` + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to delete work order');
+    return data;
+  },
+  async updateTransfer(id: string, payload: any): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/transfers/` + id, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + token,
+      },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to update transfer');
+    return data;
+  },
+  async deleteTransfer(id: string): Promise<{ success: boolean; data: any }> {
+    const token = this.getToken();
+    const res = await fetch(`/transfers/` + id, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || 'Failed to delete transfer');
     return data;
   },
 };

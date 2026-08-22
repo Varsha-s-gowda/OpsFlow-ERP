@@ -52,7 +52,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowe
         <style>{`
           .spinner {
             border: 4px solid rgba(255,255,255,0.1);
-            border-top: 4px solid #6366f1;
+            border-top: 4px solid #475569;
             borderRadius: 50%;
             width: 40px;
             height: 40px;

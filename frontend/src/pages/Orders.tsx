@@ -197,7 +197,7 @@ export const Orders: React.FC = () => {
               <label style={styles.label}>Order ID (Unique alphanumeric string)</label>
               <input
                 type="text"
-                placeholder="e.g., ORD-2026-99"
+                placeholder="e.g., 001"
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 style={styles.input}
@@ -331,7 +331,7 @@ export const Orders: React.FC = () => {
                 </thead>
                 <tbody>
                   {filteredOrders.map((ord) => {
-                    const statusColor = ord.status === 'CONFIRMED' ? '#10b981' : '#ef4444';
+                    const statusColor = ord.status === 'CONFIRMED' ? '#475569' : '#ef4444';
                     return (
                       <tr key={ord.id} style={styles.tr}>
                         <td style={styles.tdId}>{ord.orderId}</td>
@@ -401,7 +401,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0
   },
   toolbar: {
-    backgroundcolor: '#1e293b',
+    backgroundColor: '#ffffff',
     border: '1.5px solid #e2e8f0',
     borderRadius: '10px',
     padding: '16px',
@@ -431,9 +431,9 @@ const styles: Record<string, React.CSSProperties> = {
     outline: 'none'
   },
   primaryBtn: {
-    backgroundColor: '#3b5bdb',
-    border: 'none',
-    color: '#1e293b',
+      backgroundColor: '#334155',
+      border: 'none',
+      color: '#ffffff',
     padding: '10px 20px',
     borderRadius: '8px',
     fontSize: '13px',
@@ -443,7 +443,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center'
   },
   card: {
-    backgroundcolor: '#1e293b',
+    backgroundColor: '#ffffff',
     border: '1.5px solid #e2e8f0',
     borderRadius: '12px',
     padding: '24px'
@@ -462,7 +462,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   formCard: {
     backgroundColor: '#fff',
-    border: '1.5px solid #bfdbfe',
+    border: '1.5px solid #cbd5e1',
     borderRadius: '12px',
     padding: '24px'
   },
@@ -515,10 +515,10 @@ const styles: Record<string, React.CSSProperties> = {
     boxSizing: 'border-box'
   },
   addLineBtn: {
-    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-    border: '1px solid rgba(99, 102, 241, 0.25)',
+    backgroundColor: 'rgba(71, 85, 105, 0.12)',
+    border: '1px solid rgba(71, 85, 105, 0.25)',
     borderRadius: '8px',
-    color: '#3b5bdb',
+    color: '#334155',
     padding: '10px 20px',
     fontSize: '13px',
     fontWeight: '600',
@@ -542,10 +542,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '12px'
   },
   submitBtn: {
-    backgroundColor: '#3b5bdb',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#1e293b',
+      backgroundColor: '#334155',
+      border: 'none',
+      borderRadius: '8px',
+      color: '#ffffff',
     padding: '10px 20px',
     fontSize: '13px',
     fontWeight: '600',
@@ -623,16 +623,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '1px solid #f8fafc',
   },
   td: {
-    padding: '12px 16px'
-  },
+      padding: '12px 16px',
+      color: '#475569'
+    },
   tdRight: {
-    padding: '12px 16px',
-    textAlign: 'right'
-  },
+      padding: '12px 16px',
+      textAlign: 'right',
+      color: '#475569'
+    },
   tdId: {
     padding: '12px 16px',
     fontWeight: '600',
-    color: '#fbbf24'
+    color: '#1e293b'
   },
   tdQty: {
     padding: '12px 16px',

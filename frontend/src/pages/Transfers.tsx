@@ -81,6 +81,7 @@ export const Transfers: React.FC = () => {
     }
   };
 
+  const handleDeleteTransfer = async (id: string) => { if (window.confirm('Are you sure you want to delete this transfer?')) { try { await api.deleteTransfer(id); fetchAllData(); } catch (err: any) { alert(err.message || 'Failed to delete transfer'); } } };
   const handleDispatch = async (id: string) => {
     setError('');
     setSuccess('');
@@ -201,7 +202,7 @@ export const Transfers: React.FC = () => {
                   <label style={styles.label}>Transfer ID (Unique identifier)</label>
                   <input
                     type="text"
-                    placeholder="e.g., TR-1001"
+                    placeholder="e.g., 001"
                     value={transferId}
                     onChange={(e) => setTransferId(e.target.value)}
                     style={styles.input}
@@ -361,7 +362,7 @@ export const Transfers: React.FC = () => {
                             <span style={styles.lifecycleSeparator}>&rarr;</span>
                             <span
                               style={{
-                                color: tr.status === 'RECEIVED' ? '#10b981' : '#64748b',
+                                color: tr.status === 'RECEIVED' ? '#475569' : '#64748b',
                                 fontWeight: tr.status === 'RECEIVED' ? '700' : '500',
                               }}
                             >
@@ -434,7 +435,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0
   },
   toolbar: {
-    backgroundcolor: '#1e293b',
+    backgroundColor: '#ffffff',
     border: '1.5px solid #e2e8f0',
     borderRadius: '10px',
     padding: '16px',
@@ -490,9 +491,9 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer'
   },
   primaryBtn: {
-    backgroundColor: '#3b5bdb',
-    border: 'none',
-    color: '#1e293b',
+      backgroundColor: '#334155',
+      border: 'none',
+      color: '#ffffff',
     padding: '10px 20px',
     borderRadius: '8px',
     fontSize: '13px',
@@ -502,7 +503,7 @@ const styles: Record<string, React.CSSProperties> = {
     alignItems: 'center'
   },
   card: {
-    backgroundcolor: '#1e293b',
+    backgroundColor: '#ffffff',
     border: '1.5px solid #e2e8f0',
     borderRadius: '12px',
     padding: '24px'
@@ -515,7 +516,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   formCard: {
     backgroundColor: '#fff',
-    border: '1.5px solid #bfdbfe',
+    border: '1.5px solid #cbd5e1',
     borderRadius: '12px',
     padding: '24px'
   },
@@ -558,10 +559,10 @@ const styles: Record<string, React.CSSProperties> = {
     gap: '12px'
   },
   submitBtn: {
-    backgroundColor: '#3b5bdb',
-    border: 'none',
-    borderRadius: '8px',
-    color: '#1e293b',
+      backgroundColor: '#334155',
+      border: 'none',
+      borderRadius: '8px',
+      color: '#ffffff',
     padding: '10px 20px',
     fontSize: '13px',
     fontWeight: '600',
@@ -628,12 +629,14 @@ const styles: Record<string, React.CSSProperties> = {
     borderBottom: '1px solid #f8fafc',
   },
   td: {
-    padding: '12px 16px'
-  },
+      padding: '12px 16px',
+      color: '#475569'
+    },
   tdRight: {
-    padding: '12px 16px',
-    textAlign: 'right'
-  },
+      padding: '12px 16px',
+      textAlign: 'right',
+      color: '#475569'
+    },
   tdBold: {
     padding: '12px 16px',
     fontWeight: '600',
@@ -687,7 +690,7 @@ const styles: Record<string, React.CSSProperties> = {
     transition: 'all 0.2s',
   },
   receivedLabel: {
-    color: '#10b981',
+    color: '#475569',
     fontSize: '12px',
     fontWeight: '600',
     display: 'inline-flex',

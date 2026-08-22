@@ -61,31 +61,31 @@ async function main() {
   // 3. Seed Items
   console.log('Seeding items...');
   const item1 = await prisma.item.upsert({
-    where: { sku: 'SKU-MICRO-01' },
+    where: { sku: '001' },
     update: {},
     create: {
       name: 'Microcontroller board',
-      sku: 'SKU-MICRO-01',
+      sku: '001',
       categoryId: electronics.id,
     },
   });
 
   const item2 = await prisma.item.upsert({
-    where: { sku: 'SKU-LCD-10' },
+    where: { sku: '002' },
     update: {},
     create: {
       name: 'LCD Display Screen 10-inch',
-      sku: 'SKU-LCD-10',
+      sku: '002',
       categoryId: electronics.id,
     },
   });
 
   const item3 = await prisma.item.upsert({
-    where: { sku: 'SKU-COPPER-W' },
+    where: { sku: '003' },
     update: {},
     create: {
       name: 'Copper Wire Spool 50m',
-      sku: 'SKU-COPPER-W',
+      sku: '003',
       categoryId: rawMaterials.id,
     },
   });

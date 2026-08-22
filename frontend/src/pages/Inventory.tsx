@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Search, Package, X } from 'lucide-react';
+import { Plus, Edit2, Search, Package, X, Trash2 } from 'lucide-react';
 import api, { User } from '../services/api';
 import ERPLayout from '../components/ERPLayout';
 
@@ -34,6 +34,7 @@ export const Inventory: React.FC = () => {
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [batchInput, setBatchInput] = useState('');
   const [physicalQuantity, setPhysicalQuantity] = useState(0);
   const [reservedQuantity, setReservedQuantity] = useState(0);
 
@@ -64,12 +65,12 @@ export const Inventory: React.FC = () => {
       // Auto-generate next SKU
       const existingNums = (itemRes.data || [])
         .map((it: any) => {
-          const m = it.sku?.match(/^ITEM-(\d+)$/);
+          const m = it.sku?.match(/^(\d+)$/);
           return m ? parseInt(m[1], 10) : 0;
         })
         .filter((n: number) => n > 0);
       const nextNum = existingNums.length > 0 ? Math.max(...existingNums) + 1 : 1;
-      setNewItemSku(`ITEM-${String(nextNum).padStart(3, '0')}`);
+      setNewItemSku(`${String(nextNum).padStart(3, '0')}`);
     } catch (err: any) {
       setError(err.message || 'Failed to load inventory data');
     } finally {
@@ -136,16 +137,21 @@ export const Inventory: React.FC = () => {
     e.preventDefault();
     clearMessages();
     try {
+      let finalBatchId = null;
+      if (batchInput.trim()) {
+        const batchRes = await api.createBatch({ batchNumber: batchInput.trim(), itemId: selectedItemId });
+        finalBatchId = batchRes.data.id;
+      }
       await api.createInventory({
         itemId: selectedItemId,
         locationId: selectedLocationId,
-        batchId: selectedBatchId,
+        batchId: finalBatchId,
         physicalQuantity: Number(physicalQuantity),
         reservedQuantity: Number(reservedQuantity),
       });
       setSuccess('Stock record created successfully!');
       setSelectedItemId(''); setSelectedLocationId('');
-      setSelectedBatchId(''); setPhysicalQuantity(0); setReservedQuantity(0);
+      setBatchInput(''); setPhysicalQuantity(0); setReservedQuantity(0);
       closeForm();
       fetchAllData();
     } catch (err: any) {
@@ -167,6 +173,17 @@ export const Inventory: React.FC = () => {
       fetchAllData();
     } catch (err: any) {
       setError(err.message || 'Failed to update stock');
+    }
+  };
+
+  const handleDeleteInventory = async (id: string) => {
+    clearMessages();
+    try {
+      await api.deleteInventory(id);
+      setSuccess('Stock record deleted successfully!');
+      fetchAllData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete stock record');
     }
   };
 
@@ -251,7 +268,7 @@ export const Inventory: React.FC = () => {
 
                 {/* SKU — auto-generated but editable */}
                 <div style={s.formGroup}>
-                  <label style={s.label}>SKU (auto-generated)</label>
+                  <label style={s.label}>Product ID (auto-generated)</label>
                   <input
                     type="text"
                     value={newItemSku}
@@ -364,23 +381,14 @@ export const Inventory: React.FC = () => {
                 </div>
 
                 <div style={s.formGroup}>
-                  <label style={s.label}>Batch *</label>
-                  <select
-                    value={selectedBatchId}
-                    onChange={e => setSelectedBatchId(e.target.value)}
-                    style={s.select}
-                    required
-                  >
-                    <option value="">-- Choose Batch --</option>
-                    {filteredBatches.map((batch: any) => (
-                      <option key={batch.id} value={batch.id}>{batch.batchNumber}</option>
-                    ))}
-                  </select>
-                  {selectedItemId && filteredBatches.length === 0 && (
-                    <p style={{ fontSize: 11, color: '#e07b00', marginTop: 4 }}>
-                      No batches for this item. Create the item first with a batch number.
-                    </p>
-                  )}
+                  <label style={s.label}>Batch (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. BAT-001 (Type to create)"
+                    value={batchInput}
+                    onChange={e => setBatchInput(e.target.value)}
+                    style={s.input}
+                  />
                 </div>
 
                 <div style={s.formGroup}>
@@ -518,7 +526,7 @@ export const Inventory: React.FC = () => {
                 <thead>
                   <tr style={s.theadRow}>
                     <th style={s.th}>Item</th>
-                    <th style={s.th}>SKU</th>
+                    <th style={s.th}>Product ID</th>
                     <th style={s.th}>Category</th>
                     <th style={s.th}>Location</th>
                     <th style={s.th}>Batch</th>
@@ -564,17 +572,27 @@ export const Inventory: React.FC = () => {
                         </td>
                         {isAuthorized && (
                           <td style={{ ...s.td, textAlign: 'right' }}>
-                            <button
-                              onClick={() => {
-                                setEditingRecord(rec);
-                                setEditPhysical(rec.physicalQuantity);
-                                setEditReserved(rec.reservedQuantity);
-                                openForm('editStock');
-                              }}
-                              style={s.actionBtn}
-                            >
-                              <Edit2 size={13} style={{ marginRight: 4 }} /> Edit
-                            </button>
+                              <button
+                                onClick={() => {
+                                  setEditingRecord(rec);
+                                  setEditPhysical(rec.physicalQuantity);
+                                  setEditReserved(rec.reservedQuantity);
+                                  openForm('editStock');
+                                }}
+                                style={s.actionBtn}
+                              >
+                                <Edit2 size={13} style={{ marginRight: 4 }} /> Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (window.confirm('Are you sure you want to delete this inventory record?')) {
+                                    handleDeleteInventory(rec.id);
+                                  }
+                                }}
+                                style={{ ...s.actionBtn, marginLeft: 8, color: '#ef4444', borderColor: '#fca5a5', backgroundColor: '#fef2f2' }}
+                              >
+                                <Trash2 size={13} style={{ marginRight: 4 }} /> Delete
+                              </button>
                           </td>
                         )}
                       </tr>
@@ -599,7 +617,7 @@ const s: Record<string, React.CSSProperties> = {
   spinner: {
     width: 36, height: 36,
     border: '3px solid #e2e8f0',
-    borderTop: '3px solid #3b82f6',
+    borderTop: '3px solid #475569',
     borderRadius: '50%',
     animation: 'spin 0.8s linear infinite',
   },
@@ -613,12 +631,12 @@ const s: Record<string, React.CSSProperties> = {
 
   // Buttons
   primaryBtn: {
-    backgroundColor: '#3b82f6', border: 'none', color: '#fff',
+    backgroundColor: '#475569', border: 'none', color: '#fff',
     padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
     cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
   },
   outlineBtn: {
-    backgroundColor: '#fff', border: '1.5px solid #3b82f6', color: '#3b82f6',
+    backgroundColor: '#fff', border: '1.5px solid #475569', color: '#475569',
     padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
     cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
   },
@@ -647,7 +665,7 @@ const s: Record<string, React.CSSProperties> = {
 
   // Form card
   formCard: {
-    backgroundColor: '#fff', border: '1.5px solid #bfdbfe',
+    backgroundColor: '#fff', border: '1.5px solid #cbd5e1',
     borderRadius: 12, padding: 24, boxShadow: '0 2px 12px rgba(59,130,246,0.07)',
   },
   formCardHeader: {
@@ -734,7 +752,7 @@ const s: Record<string, React.CSSProperties> = {
   tr: { borderBottom: '1px solid #f1f5f9' },
   td: { padding: '12px 16px', color: '#374151' },
   tdBold: { padding: '12px 16px', fontWeight: 700, color: '#1e293b' },
-  tdSku: { padding: '12px 16px', fontWeight: 700, color: '#3b82f6', fontFamily: 'monospace' },
+  tdSku: { padding: '12px 16px', fontWeight: 700, color: '#475569', fontFamily: 'monospace' },
   tdMono: { padding: '12px 16px', color: '#64748b', fontFamily: 'monospace', fontSize: 12 },
   tdNum: { padding: '12px 16px', textAlign: 'right', fontWeight: 600, color: '#374151' },
 

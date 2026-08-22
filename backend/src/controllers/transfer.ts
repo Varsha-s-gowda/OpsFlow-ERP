@@ -293,3 +293,13 @@ export const receiveTransfer = async (req: Request, res: Response, next: NextFun
     }
   }
 };
+
+export const deleteTransfer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.transfer.delete({ where: { id } });
+    res.status(200).json({ success: true, data: { id } });
+  } catch (error) {
+    next(error);
+  }
+};

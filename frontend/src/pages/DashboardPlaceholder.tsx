@@ -10,6 +10,7 @@ import {
   ArrowRight,
   UserCheck
 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import api, { User } from '../services/api';
 import ERPLayout from '../components/ERPLayout';
 
@@ -29,6 +30,11 @@ export const DashboardPlaceholder: React.FC = () => {
   const [recentTransfers, setRecentTransfers] = useState<any[]>([]);
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [lowStockItems, setLowStockItems] = useState<any[]>([]);
+  const [stockChartData, setStockChartData] = useState<any[]>([]);
+  const [woPieData, setWoPieData] = useState<any[]>([]);
+  const [orderPieData, setOrderPieData] = useState<any[]>([]);
+  const [transferPieData, setTransferPieData] = useState<any[]>([]);
+  const [locationBarData, setLocationBarData] = useState<any[]>([]);
 
   const navigate = useNavigate();
 
@@ -85,6 +91,45 @@ export const DashboardPlaceholder: React.FC = () => {
       setRecentWorkOrders(workOrdersList.slice(0, 5));
       setRecentTransfers(transfersList.slice(0, 5));
       setRecentOrders(ordersList.slice(0, 5));
+
+      // Bar Chart Data: Top 5 items
+      const barData = inventoryList
+        .map(inv => ({
+          name: (inv.item?.name || 'Unknown').substring(0, 12),
+          quantity: inv.physicalQuantity
+        }))
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
+      setStockChartData(barData);
+
+      // Pie Chart Data: Work Orders
+      const woStatuses: Record<string, number> = {};
+      workOrdersList.forEach(wo => {
+        woStatuses[wo.status] = (woStatuses[wo.status] || 0) + 1;
+      });
+      setWoPieData(Object.keys(woStatuses).map(k => ({ name: k, value: woStatuses[k] })));
+
+      // Pie Chart Data: Customer Orders
+      const orderStatuses: Record<string, number> = {};
+      ordersList.forEach(o => {
+        orderStatuses[o.status] = (orderStatuses[o.status] || 0) + 1;
+      });
+      setOrderPieData(Object.keys(orderStatuses).map(k => ({ name: k, value: orderStatuses[k] })));
+
+      // Pie Chart Data: Transfer Statuses
+      const transferStatuses: Record<string, number> = {};
+      transfersList.forEach(tr => {
+        transferStatuses[tr.status] = (transferStatuses[tr.status] || 0) + 1;
+      });
+      setTransferPieData(Object.keys(transferStatuses).map(k => ({ name: k, value: transferStatuses[k] })));
+
+      // Bar Chart Data: Inventory by Location
+      const locationStock: Record<string, number> = {};
+      inventoryList.forEach(inv => {
+        const locName = inv.location?.name || 'Unknown';
+        locationStock[locName] = (locationStock[locName] || 0) + inv.physicalQuantity;
+      });
+      setLocationBarData(Object.keys(locationStock).map(k => ({ name: k, quantity: locationStock[k] })));
 
     } catch (err) {
       console.error('Failed to retrieve dashboard figures', err);
@@ -341,66 +386,105 @@ export const DashboardPlaceholder: React.FC = () => {
             )}
           </div>
 
-          {/* Right / Secondary Column */}
+          {/* Right / Secondary Column - Graphical Analysis */}
           <div style={styles.panelsColSecondary}>
-            {/* Stock Alerts (Admin/Operations) */}
             {(role === 'ADMIN' || role === 'OPERATIONS') && (
               <div style={styles.panelCard}>
                 <div style={styles.panelHeader}>
-                  <h4 style={styles.panelTitle}>Low Stock Indicators</h4>
+                  <h4 style={styles.panelTitle}>Top Inventory Levels</h4>
                 </div>
-                {lowStockItems.length === 0 ? (
-                  <p style={styles.successText}>All stock lines healthy.</p>
-                ) : (
-                  <div style={styles.alertList}>
-                    {lowStockItems.map((inv) => {
-                      const av = inv.physicalQuantity - inv.reservedQuantity;
-                      return (
-                        <div key={inv.id} style={styles.alertItem}>
-                          <AlertTriangle size={18} color="#fbbf24" style={{ marginRight: 10, flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={styles.alertItemTitle}>{inv.item?.name} ({inv.location?.name})</div>
-                            <div style={styles.alertItemDetail}>
-                              Batch: {inv.batch?.batchNumber} &bull; Available: <strong>{av}</strong> units
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div style={{ width: '100%', height: 260 }}>
+                  {stockChartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stockChartData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
+                        <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-30} textAnchor="end" />
+                        <YAxis tick={{fontSize: 10}} />
+                        <Tooltip />
+                        <Bar dataKey="quantity" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p style={styles.emptyText}>No inventory data.</p>
+                  )}
+                </div>
               </div>
             )}
 
-            {/* Quick Actions Panel */}
-            <div style={styles.panelCard}>
-              <div style={styles.panelHeader}>
-                <h4 style={styles.panelTitle}>ERP Quick Links</h4>
+            {(role === 'ADMIN' || role === 'OPERATIONS') && (
+              <div style={styles.panelCard}>
+                <div style={styles.panelHeader}>
+                  <h4 style={styles.panelTitle}>Work Order Statuses</h4>
+                </div>
+                <div style={{ width: '100%', height: 240 }}>
+                  {woPieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={woPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={2}>
+                          {woPieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={['#60a5fa', '#34d399', '#fbbf24', '#f87171'][index % 4]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <p style={styles.emptyText}>No active work orders.</p>
+                  )}
+                </div>
               </div>
-              <div style={styles.actionsList}>
-                {(role === 'ADMIN' || role === 'OPERATIONS') && (
-                  <button onClick={() => navigate('/inventory')} className="btn-hover" style={styles.actionBtn}>
-                    Manage Inventory
-                  </button>
-                )}
-                {role === 'ADMIN' && (
-                  <button onClick={() => navigate('/work-orders')} className="btn-hover" style={styles.actionBtn}>
-                    Schedule Work Order
-                  </button>
-                )}
-                {(role === 'ADMIN' || role === 'OPERATIONS') && (
-                  <button onClick={() => navigate('/transfers')} className="btn-hover" style={styles.actionBtn}>
-                    Initiate Stock Transfer
-                  </button>
-                )}
-                {(role === 'ADMIN' || role === 'SALES') && (
-                  <button onClick={() => navigate('/orders')} className="btn-hover" style={styles.actionBtn}>
-                    Create Customer Order
-                  </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Graph Row */}
+        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+            <div style={{ ...styles.panelCard, flex: '1 1 400px' }}>
+              <div style={styles.panelHeader}>
+                <h4 style={styles.panelTitle}>Transfer Statuses</h4>
+              </div>
+              <div style={{ width: '100%', height: 240 }}>
+                {transferPieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={transferPieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={2}>
+                        {transferPieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={['#a78bfa', '#f472b6', '#34d399', '#60a5fa'][index % 4]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={styles.emptyText}>No transfer data.</p>
                 )}
               </div>
             </div>
-          </div>
+          )}
+
+          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+            <div style={{ ...styles.panelCard, flex: '1 1 400px' }}>
+              <div style={styles.panelHeader}>
+                <h4 style={styles.panelTitle}>Stock by Location</h4>
+              </div>
+              <div style={{ width: '100%', height: 260 }}>
+                {locationBarData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={locationBarData} margin={{ top: 20, right: 10, left: -20, bottom: 20 }}>
+                      <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-30} textAnchor="end" />
+                      <YAxis tick={{fontSize: 10}} />
+                      <Tooltip />
+                      <Bar dataKey="quantity" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p style={styles.emptyText}>No location data.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </ERPLayout>
@@ -446,12 +530,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     padding: '8px 16px',
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f8fafc',
     borderRadius: '8px',
     fontSize: '12px',
     fontWeight: '600',
-    color: '#3b5bdb',
-    border: '1px solid #bfdbfe'
+    color: '#334155',
+    border: '1px solid #cbd5e1'
   },
   kpiGrid: {
     display: 'grid',
@@ -485,11 +569,11 @@ const styles: Record<string, React.CSSProperties> = {
     width: '32px',
     height: '32px',
     borderRadius: '8px',
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#f8fafc',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    border: '1px solid #bfdbfe'
+    border: '1px solid #cbd5e1'
   },
   kpiValue: {
     fontSize: '30px',
@@ -541,7 +625,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   panelLink: {
     fontSize: '13px',
-    color: '#3b5bdb',
+    color: '#334155',
     textDecoration: 'none',
     fontWeight: '600',
     display: 'inline-flex',

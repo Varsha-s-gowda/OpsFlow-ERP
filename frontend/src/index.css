@@ -27,21 +27,21 @@ a {
 
 /* ERP Styles & Pseudo Classes */
 .btn-hover:hover {
-  background-color: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.3) !important;
+  background-color: rgba(71, 85, 105, 0.08) !important;
+  border-color: rgba(71, 85, 105, 0.3) !important;
   color: #818cf8 !important;
 }
 .dispatch-btn-hover:hover {
   background-color: rgba(251, 191, 36, 0.15) !important;
 }
 .receive-btn-hover:hover {
-  background-color: rgba(16, 185, 129, 0.15) !important;
+  background-color: rgba(71, 85, 105, 0.15) !important;
 }
 .action-btn-hover:hover {
-  background-color: rgba(59, 130, 246, 0.15) !important;
+  background-color: rgba(71, 85, 105, 0.15) !important;
 }
 .success-action-btn-hover:hover {
-  background-color: rgba(16, 185, 129, 0.15) !important;
+  background-color: rgba(71, 85, 105, 0.15) !important;
 }
 .logout-btn-hover:hover {
   background-color: rgba(239, 68, 68, 0.1) !important;

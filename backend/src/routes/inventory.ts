@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   createInventory,
   updatePhysicalQuantity,
+  deleteInventory,
   listInventory,
   getInventoryById,
   getInventoryByItem,
@@ -27,5 +28,7 @@ router.get('/batch/:batchId', authorizeRoles(Role.ADMIN, Role.OPERATIONS, Role.S
 // Modification inventory routes restricted to Admin and Operations
 router.post('/', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(createInventorySchema), createInventory);
 router.patch('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(updatePhysicalQuantitySchema), updatePhysicalQuantity);
+
+router.delete('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), deleteInventory);
 
 export default router;

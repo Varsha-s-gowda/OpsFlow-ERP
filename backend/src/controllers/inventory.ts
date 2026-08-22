@@ -180,3 +180,13 @@ export const getInventoryByBatch = async (req: Request, res: Response, next: Nex
     next(error);
   }
 };
+
+export const deleteInventory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const { id } = req.params;
+    await prisma.inventory.delete({ where: { id } });
+    res.status(200).json({ success: true, data: { id } });
+  } catch (error) {
+    next(error);
+  }
+};

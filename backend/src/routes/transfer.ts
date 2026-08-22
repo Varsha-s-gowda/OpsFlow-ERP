@@ -4,7 +4,8 @@ import {
   listTransfers,
   getTransferById,
   dispatchTransfer,
-  receiveTransfer
+  receiveTransfer,
+  deleteTransfer
 } from '../controllers/transfer';
 import { authenticate, authorizeRoles } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -21,5 +22,7 @@ router.get('/:id', getTransferById);
 router.post('/', validateRequest(createTransferSchema), createTransfer);
 router.patch('/:id/dispatch', dispatchTransfer);
 router.patch('/:id/receive', receiveTransfer);
+
+router.delete('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), deleteTransfer);
 
 export default router;

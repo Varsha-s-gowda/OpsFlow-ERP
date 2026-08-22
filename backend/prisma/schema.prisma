@@ -89,7 +89,7 @@ model Inventory {
   id               String   @id @default(uuid())
   itemId           String
   locationId       String
-  batchId          String
+  batchId          String?
   physicalQuantity Int
   reservedQuantity Int
   createdAt        DateTime @default(now())
@@ -97,7 +97,7 @@ model Inventory {
 
   item     Item     @relation(fields: [itemId], references: [id])
   location Location @relation(fields: [locationId], references: [id])
-  batch    Batch    @relation(fields: [batchId], references: [id])
+  batch    Batch?    @relation(fields: [batchId], references: [id])
 
   @@unique([itemId, locationId, batchId])
   @@index([locationId])

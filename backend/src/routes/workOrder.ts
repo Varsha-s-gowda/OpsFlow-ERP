@@ -3,7 +3,8 @@ import {
   createWorkOrder,
   listWorkOrders,
   getWorkOrderById,
-  updateWorkOrderStatus
+  updateWorkOrderStatus,
+  deleteWorkOrder
 } from '../controllers/workOrder';
 import { authenticate, authorizeRoles } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -23,5 +24,7 @@ router.post('/', authorizeRoles(Role.ADMIN), validateRequest(createWorkOrderSche
 
 // Update status
 router.patch('/:id/status', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(updateWorkOrderStatusSchema), updateWorkOrderStatus);
+
+router.delete('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), deleteWorkOrder);
 
 export default router;
