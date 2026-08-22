@@ -151,9 +151,10 @@ export const DashboardPlaceholder: React.FC = () => {
   }
 
   const role = user?.role || 'OPERATIONS';
+  const dashboardTitle = role === 'ADMIN' ? 'Admin Dashboard' : role === 'SALES' ? 'Sales Dashboard' : 'Operations Dashboard';
 
   return (
-    <ERPLayout pageTitle="Operations Dashboard">
+    <ERPLayout pageTitle={dashboardTitle}>
       <div style={styles.dashboardContainer}>
         {/* Welcome Section */}
         <div style={styles.welcomeBanner}>

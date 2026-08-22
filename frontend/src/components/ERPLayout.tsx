@@ -53,7 +53,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
 
   // Role subtitle shown under brand name
   const roleLabel: Record<string, string> = {
-    ADMIN: 'Operations Control',
+    ADMIN: 'Admin Controls',
     OPERATIONS: 'Warehouse Control',
     SALES: 'Sales Control',
   };
