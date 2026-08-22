@@ -95,9 +95,11 @@ export const WorkOrders: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div className="spinner" />
-      </div>
+      <ERPLayout pageTitle="Work Orders">
+        <div style={styles.loadingContainer}>
+          <div className="spinner" />
+        </div>
+      </ERPLayout>
     );
   }
 

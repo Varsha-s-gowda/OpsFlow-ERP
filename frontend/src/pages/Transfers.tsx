@@ -108,9 +108,11 @@ export const Transfers: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div className="spinner" />
-      </div>
+      <ERPLayout pageTitle="Stock Transfers">
+        <div style={styles.loadingContainer}>
+          <div className="spinner" />
+        </div>
+      </ERPLayout>
     );
   }
 

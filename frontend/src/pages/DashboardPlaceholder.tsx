@@ -144,9 +144,11 @@ export const DashboardPlaceholder: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div className="spinner" />
-      </div>
+      <ERPLayout pageTitle="Operations Dashboard">
+        <div style={styles.loadingContainer}>
+          <div className="spinner" />
+        </div>
+      </ERPLayout>
     );
   }
 

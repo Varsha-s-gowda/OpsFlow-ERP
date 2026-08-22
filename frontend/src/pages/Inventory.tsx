@@ -189,9 +189,11 @@ export const Inventory: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={s.loadingContainer}>
-        <div style={s.spinner} />
-      </div>
+      <ERPLayout pageTitle="Inventory Stock Control">
+        <div style={s.loadingContainer}>
+          <div style={s.spinner} />
+        </div>
+      </ERPLayout>
     );
   }
 
