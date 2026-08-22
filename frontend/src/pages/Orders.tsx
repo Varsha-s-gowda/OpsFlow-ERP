@@ -17,11 +17,7 @@ export const Orders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Form & Draft Order State
   const [showAddForm, setShowAddForm] = useState(false);
   const [orderId, setOrderId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
@@ -59,8 +55,6 @@ export const Orders: React.FC = () => {
 
     const selectedItem = items.find((i) => i.id === selectedItemId);
     if (!selectedItem) return;
-
-    // Check if item is already in draft list, update quantity
     const existingIndex = draftItems.findIndex((d) => d.itemId === selectedItemId);
     if (existingIndex > -1) {
       const updated = [...draftItems];
@@ -76,8 +70,6 @@ export const Orders: React.FC = () => {
         },
       ]);
     }
-
-    // Reset line state
     setSelectedItemId('');
     setQuantity(1);
   };
@@ -132,16 +124,12 @@ export const Orders: React.FC = () => {
 
   const isSales = user?.role === 'SALES';
   const isAuthorizedToView = user?.role === 'SALES' || user?.role === 'ADMIN';
-
-  // Live stock pool calculation for selected item
   const selectedItemInv = inventory.filter((inv) => inv.itemId === selectedItemId);
   const totalAvailable = selectedItemInv.reduce(
     (sum, inv) => sum + (inv.physicalQuantity - inv.reservedQuantity),
     0
   );
   const exceedsStock = quantity > totalAvailable;
-
-  // Apply filters
   const filteredOrders = orders.filter((o) => {
     const matchesSearch =
       !searchTerm ||
@@ -154,8 +142,7 @@ export const Orders: React.FC = () => {
   return (
     <ERPLayout pageTitle="Customer Orders & Reservations">
       <div style={styles.viewContainer}>
-        {/* Title Row */}
-        <div style={styles.titleRow}>
+                <div style={styles.titleRow}>
           <div>
             <p style={styles.subtitleText}>Create orders and reserve available physical stock atomically.</p>
           </div>
@@ -176,8 +163,7 @@ export const Orders: React.FC = () => {
           </div>
         )}
 
-        {/* Filter Toolbar */}
-        <div style={styles.toolbar}>
+                <div style={styles.toolbar}>
           <div style={styles.searchBox}>
             <Search size={18} color="#64748b" style={{ marginRight: 8 }} />
             <input
@@ -190,8 +176,7 @@ export const Orders: React.FC = () => {
           </div>
         </div>
 
-        {/* Add Customer Order Panel */}
-        {isSales && showAddForm && (
+                {isSales && showAddForm && (
           <div style={styles.formCard}>
             <h3 style={styles.cardTitle}>New Customer Order Request</h3>
 
@@ -207,8 +192,7 @@ export const Orders: React.FC = () => {
               />
             </div>
 
-            {/* Add Line Item form */}
-            <div style={styles.lineFormCard}>
+                        <div style={styles.lineFormCard}>
               <h4 style={styles.subCardTitle}>Add Order Item</h4>
               <form onSubmit={handleAddDraftItem} style={styles.inlineForm}>
                 <div style={{ ...styles.formGroup, flex: 2 }}>
@@ -245,8 +229,7 @@ export const Orders: React.FC = () => {
                 </button>
               </form>
 
-              {/* Real-time stock reservation status indicator */}
-              {selectedItemId && (
+                            {selectedItemId && (
                 <div style={styles.stockStatusPreview}>
                   <span style={{ color: exceedsStock ? '#f87171' : '#34d399', fontWeight: '600' }}>
                     {exceedsStock
@@ -257,8 +240,7 @@ export const Orders: React.FC = () => {
               )}
             </div>
 
-            {/* Draft Items List */}
-            <div style={{ marginTop: '24px', marginBottom: '24px' }}>
+                        <div style={{ marginTop: '24px', marginBottom: '24px' }}>
               <h4 style={{ ...styles.subCardTitle, marginBottom: '12px' }}>Order Review List</h4>
               {draftItems.length === 0 ? (
                 <p style={styles.emptyText}>No items added to this order draft yet.</p>
@@ -313,8 +295,7 @@ export const Orders: React.FC = () => {
           </div>
         )}
 
-        {/* Existing Customer Orders Ledger */}
-        <div style={styles.card}>
+                <div style={styles.card}>
           {filteredOrders.length === 0 ? (
             <div style={styles.emptyContainer}>
               <p style={styles.emptyText}>No customer orders recorded.</p>

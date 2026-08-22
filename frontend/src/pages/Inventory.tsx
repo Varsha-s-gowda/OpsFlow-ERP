@@ -16,29 +16,21 @@ export const Inventory: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [formMode, setFormMode] = useState<FormMode>('none');
-
-  // Search & Filter
   const [searchTerm, setSearchTerm] = useState('');
   const [filterLocation, setFilterLocation] = useState('');
   const [filterStock, setFilterStock] = useState('');
-
-  // Add New Item form state
   const [newItemName, setNewItemName] = useState('');
   const [newItemSku, setNewItemSku] = useState('');
   const [newItemCategoryId, setNewItemCategoryId] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showNewCategory, setShowNewCategory] = useState(false);
   const [newBatchNumber, setNewBatchNumber] = useState('');
-
-  // Add Stock Record form state
   const [selectedItemId, setSelectedItemId] = useState('');
   const [selectedLocationId, setSelectedLocationId] = useState('');
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [batchInput, setBatchInput] = useState('');
   const [physicalQuantity, setPhysicalQuantity] = useState(0);
   const [reservedQuantity, setReservedQuantity] = useState(0);
-
-  // Edit state
   const [editingRecord, setEditingRecord] = useState<any | null>(null);
   const [editPhysical, setEditPhysical] = useState(0);
   const [editReserved, setEditReserved] = useState(0);
@@ -61,8 +53,6 @@ export const Inventory: React.FC = () => {
       setCategories(catRes.data || []);
       setLocations(locRes.data || []);
       setBatches(batchRes.data || []);
-
-      // Auto-generate next SKU
       const existingNums = (itemRes.data || [])
         .map((it: any) => {
           const m = it.sku?.match(/^(\d+)$/);
@@ -95,15 +85,11 @@ export const Inventory: React.FC = () => {
     setEditingRecord(null);
     clearMessages();
   };
-
-  // ── Handle: Create New Item (+ optional batch) ──
   const handleCreateItem = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
     try {
       let categoryId = newItemCategoryId;
-
-      // Create new category if typed
       if (showNewCategory && newCategoryName.trim()) {
         const catRes = await api.createCategory({ name: newCategoryName.trim() });
         categoryId = catRes.data.id;
@@ -113,8 +99,6 @@ export const Inventory: React.FC = () => {
 
       const itemRes = await api.createItem({ name: newItemName, sku: newItemSku, categoryId });
       const itemId = itemRes.data.id;
-
-      // Create batch if provided
       if (newBatchNumber.trim()) {
         await api.createBatch({ batchNumber: newBatchNumber.trim(), itemId });
       }
@@ -131,8 +115,6 @@ export const Inventory: React.FC = () => {
       setError(err.message || 'Failed to create item');
     }
   };
-
-  // ── Handle: Add Stock Record ──
   const handleAddInventory = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
@@ -158,8 +140,6 @@ export const Inventory: React.FC = () => {
       setError(err.message || 'Failed to create stock record');
     }
   };
-
-  // ── Handle: Edit Stock ──
   const handleUpdateInventory = async (e: React.FormEvent) => {
     e.preventDefault();
     clearMessages();
@@ -222,8 +202,7 @@ export const Inventory: React.FC = () => {
     <ERPLayout pageTitle="Inventory Stock Control">
       <div style={s.page}>
 
-        {/* ── Header ── */}
-        <div style={s.header}>
+                <div style={s.header}>
           <p style={s.subtitle}>Manage warehouse stock levels, items, and batch records.</p>
           {isAuthorized && (
             <div style={s.headerBtns}>
@@ -239,14 +218,10 @@ export const Inventory: React.FC = () => {
           )}
         </div>
 
-        {/* ── Messages ── */}
-        {error && <div style={s.errorBox}>{error}</div>}
+                {error && <div style={s.errorBox}>{error}</div>}
         {success && <div style={s.successBox}>{success}</div>}
 
-        {/* ══════════════════════════════════════════
-            FORM: Add New Item
-        ══════════════════════════════════════════ */}
-        {isAuthorized && formMode === 'addItem' && (
+                {isAuthorized && formMode === 'addItem' && (
           <div style={s.formCard}>
             <div style={s.formCardHeader}>
               <h3 style={s.formTitle}>Create New Item</h3>
@@ -255,8 +230,7 @@ export const Inventory: React.FC = () => {
             <form onSubmit={handleCreateItem}>
               <div style={s.formGrid3}>
 
-                {/* Item Name */}
-                <div style={s.formGroup}>
+                                <div style={s.formGroup}>
                   <label style={s.label}>Item Name *</label>
                   <input
                     type="text"
@@ -268,8 +242,7 @@ export const Inventory: React.FC = () => {
                   />
                 </div>
 
-                {/* SKU — auto-generated but editable */}
-                <div style={s.formGroup}>
+                                <div style={s.formGroup}>
                   <label style={s.label}>Product ID (auto-generated)</label>
                   <input
                     type="text"
@@ -280,8 +253,7 @@ export const Inventory: React.FC = () => {
                   />
                 </div>
 
-                {/* Category */}
-                <div style={s.formGroup}>
+                                <div style={s.formGroup}>
                   <label style={s.label}>Category *</label>
                   {!showNewCategory ? (
                     <div style={{ display: 'flex', gap: 8 }}>
@@ -320,8 +292,7 @@ export const Inventory: React.FC = () => {
                   )}
                 </div>
 
-                {/* Batch Number (optional) */}
-                <div style={s.formGroup}>
+                                <div style={s.formGroup}>
                   <label style={s.label}>Initial Batch Number <span style={{ color: '#94a3b8' }}>(optional)</span></label>
                   <input
                     type="text"
@@ -341,10 +312,7 @@ export const Inventory: React.FC = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            FORM: Add Stock Record
-        ══════════════════════════════════════════ */}
-        {isAuthorized && formMode === 'addStock' && (
+                {isAuthorized && formMode === 'addStock' && (
           <div style={s.formCard}>
             <div style={s.formCardHeader}>
               <h3 style={s.formTitle}>Add Stock Record</h3>
@@ -413,8 +381,7 @@ export const Inventory: React.FC = () => {
                   />
                 </div>
 
-                {/* Available preview */}
-                <div style={{ ...s.formGroup, justifyContent: 'flex-end' }}>
+                                <div style={{ ...s.formGroup, justifyContent: 'flex-end' }}>
                   <label style={s.label}>Calculated Available</label>
                   <div style={s.availablePreview}>
                     {Math.max(0, physicalQuantity - reservedQuantity)} units
@@ -430,10 +397,7 @@ export const Inventory: React.FC = () => {
           </div>
         )}
 
-        {/* ══════════════════════════════════════════
-            FORM: Edit Stock
-        ══════════════════════════════════════════ */}
-        {isAuthorized && editingRecord && formMode === 'editStock' && (
+                {isAuthorized && editingRecord && formMode === 'editStock' && (
           <div style={s.formCard}>
             <div style={s.formCardHeader}>
               <h3 style={s.formTitle}>
@@ -476,8 +440,7 @@ export const Inventory: React.FC = () => {
           </div>
         )}
 
-        {/* ── Toolbar ── */}
-        <div style={s.toolbar}>
+                <div style={s.toolbar}>
           <div style={s.searchBox}>
             <Search size={16} color="#94a3b8" style={{ marginRight: 8, flexShrink: 0 }} />
             <input
@@ -507,8 +470,7 @@ export const Inventory: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Table ── */}
-        <div style={s.tableCard}>
+                <div style={s.tableCard}>
           <div style={s.tableInfo}>
             <span style={s.tableCount}>{filteredRecords.length} record{filteredRecords.length !== 1 ? 's' : ''}</span>
           </div>
@@ -609,8 +571,6 @@ export const Inventory: React.FC = () => {
     </ERPLayout>
   );
 };
-
-// ── Light Theme Styles ──
 const s: Record<string, React.CSSProperties> = {
   loadingContainer: {
     minHeight: '100vh', backgroundColor: '#f8fafc',
@@ -630,8 +590,6 @@ const s: Record<string, React.CSSProperties> = {
   },
   subtitle: { fontSize: 13, color: '#64748b', margin: 0 },
   headerBtns: { display: 'flex', gap: 10 },
-
-  // Buttons
   primaryBtn: {
     backgroundColor: '#475569', border: 'none', color: '#fff',
     padding: '9px 18px', borderRadius: 8, fontSize: 13, fontWeight: 600,
@@ -664,8 +622,6 @@ const s: Record<string, React.CSSProperties> = {
     background: 'none', border: 'none', cursor: 'pointer',
     color: '#94a3b8', padding: 4,
   },
-
-  // Form card
   formCard: {
     backgroundColor: '#fff', border: '1.5px solid #cbd5e1',
     borderRadius: 12, padding: 24, boxShadow: '0 2px 12px rgba(59,130,246,0.07)',
@@ -698,8 +654,6 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 8, color: '#16a34a', padding: '9px 14px',
     fontSize: 14, fontWeight: 700,
   },
-
-  // Toolbar
   toolbar: {
     backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
     borderRadius: 10, padding: '12px 16px',
@@ -721,8 +675,6 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 8, color: '#475569', padding: '8px 14px',
     fontSize: 13, outline: 'none', cursor: 'pointer',
   },
-
-  // Messages
   errorBox: {
     backgroundColor: '#fee2e2', border: '1px solid #fecaca',
     color: '#dc2626', borderRadius: 8, padding: '12px 16px', fontSize: 13,
@@ -731,8 +683,6 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: '#dcfce7', border: '1px solid #bbf7d0',
     color: '#16a34a', borderRadius: 8, padding: '12px 16px', fontSize: 13,
   },
-
-  // Table
   tableCard: {
     backgroundColor: '#fff', border: '1.5px solid #e2e8f0',
     borderRadius: 12, overflow: 'hidden',

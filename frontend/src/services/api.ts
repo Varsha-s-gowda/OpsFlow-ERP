@@ -41,7 +41,6 @@ async function apiFetch(url: string, options?: RequestInit) {
       }
     }
   } else {
-    // Clear cache on any mutation (POST, PATCH, DELETE) to ensure fresh data
     clearCache();
   }
 

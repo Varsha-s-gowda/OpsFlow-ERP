@@ -14,15 +14,9 @@ import { Role } from '@prisma/client';
 const router = Router();
 
 router.use(authenticate);
-
-// View work orders
 router.get('/', authorizeRoles(Role.ADMIN, Role.OPERATIONS), listWorkOrders);
 router.get('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), getWorkOrderById);
-
-// Create work orders
 router.post('/', authorizeRoles(Role.ADMIN), validateRequest(createWorkOrderSchema), createWorkOrder);
-
-// Update status
 router.patch('/:id/status', authorizeRoles(Role.ADMIN, Role.OPERATIONS), validateRequest(updateWorkOrderStatusSchema), updateWorkOrderStatus);
 
 router.delete('/:id', authorizeRoles(Role.ADMIN, Role.OPERATIONS), deleteWorkOrder);

@@ -12,12 +12,8 @@ export const Transfers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-
-  // Form State
   const [showAddForm, setShowAddForm] = useState(false);
   const [transferId, setTransferId] = useState('');
   const [sourceLocationId, setSourceLocationId] = useState('');
@@ -68,7 +64,6 @@ export const Transfers: React.FC = () => {
       });
       setSuccess('Transfer request created successfully!');
       setShowAddForm(false);
-      // Reset form
       setTransferId('');
       setSourceLocationId('');
       setDestinationLocationId('');
@@ -117,8 +112,6 @@ export const Transfers: React.FC = () => {
   }
 
   const isAuthorized = user?.role === 'ADMIN' || user?.role === 'OPERATIONS';
-
-  // Apply filters
   const filteredTransfers = transfers.filter((tr) => {
     const matchesSearch =
       !searchTerm ||
@@ -133,8 +126,7 @@ export const Transfers: React.FC = () => {
   return (
     <ERPLayout pageTitle="Internal Stock Transfers">
       <div style={styles.viewContainer}>
-        {/* Title Row */}
-        <div style={styles.titleRow}>
+                <div style={styles.titleRow}>
           <div>
             <p style={styles.subtitleText}>Request and process internal warehouse logistics transfers.</p>
           </div>
@@ -155,8 +147,7 @@ export const Transfers: React.FC = () => {
           </div>
         )}
 
-        {/* Filter Toolbar */}
-        <div style={styles.toolbar}>
+                <div style={styles.toolbar}>
           <div style={styles.searchBox}>
             <Search size={18} color="#64748b" style={{ marginRight: 8 }} />
             <input
@@ -194,8 +185,7 @@ export const Transfers: React.FC = () => {
           </div>
         </div>
 
-        {/* Create Transfer Form */}
-        {isAuthorized && showAddForm && (
+                {isAuthorized && showAddForm && (
           <div style={styles.formCard}>
             <h3 style={styles.cardTitle}>New Transfer Order Request</h3>
             <form onSubmit={handleCreateTransfer} style={styles.form}>
@@ -308,8 +298,7 @@ export const Transfers: React.FC = () => {
           </div>
         )}
 
-        {/* Ledger Panel */}
-        <div style={styles.card}>
+                <div style={styles.card}>
           {filteredTransfers.length === 0 ? (
             <div style={styles.emptyContainer}>
               <p style={styles.emptyText}>No transfers matching the criteria.</p>

@@ -12,8 +12,6 @@ export const errorHandler = (
   let statusCode = 500;
   let message = 'Internal Server Error';
   let errors: any = undefined;
-
-  // Handle Zod validation errors
   if (err instanceof ZodError) {
     statusCode = 400;
     message = 'Validation Error';
@@ -22,7 +20,6 @@ export const errorHandler = (
       message: e.message,
     }));
   }
-  // Handle Prisma Database errors
   else if (err instanceof Prisma.PrismaClientKnownRequestError) {
     statusCode = 400;
     if (err.code === 'P2002') {

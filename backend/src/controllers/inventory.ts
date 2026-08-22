@@ -22,8 +22,6 @@ export const createInventory = async (req: Request, res: Response, next: NextFun
     const { itemId, locationId, batchId, physicalQuantity, reservedQuantity = 0 } = req.body;
 
     inventoryService.validateQuantity(physicalQuantity, reservedQuantity);
-
-    // Check if combo already exists
     const existing = await prisma.inventory.findUnique({
       where: {
         itemId_locationId_batchId: { itemId, locationId, batchId },
@@ -68,8 +66,6 @@ export const updatePhysicalQuantity = async (req: Request, res: Response, next: 
       res.status(404).json({ success: false, message: 'Inventory record not found' });
       return;
     }
-
-    // Determine final values to validate, using existing if not provided
     const nextPhysical = physicalQuantity !== undefined ? physicalQuantity : existing.physicalQuantity;
     const nextReserved = reservedQuantity !== undefined ? reservedQuantity : existing.reservedQuantity;
 

@@ -7,20 +7,14 @@ import { Role } from '@prisma/client';
 import prisma from '../services/db';
 
 const router = Router();
-
-// Health Check
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
     message: 'OpsFlow ERP API is running',
   });
 });
-
-// Auth Routes
 router.post('/auth/login', validateRequest(loginSchema), login);
 router.get('/auth/me', authenticate, getMe);
-
-// Lookup Routes - GET all
 router.get('/items', authenticate, async (req, res, next) => {
   try {
     const items = await prisma.item.findMany({ include: { category: true } });
@@ -96,8 +90,6 @@ router.get('/users', authenticate, async (req, res, next) => {
     res.json({ success: true, data: users });
   } catch (err) { next(err); }
 });
-
-// Phase 1 Role-Testing Endpoints
 router.get('/auth/admin-test', authenticate, authorizeRoles(Role.ADMIN), (req, res) => {
   res.status(200).json({
     success: true,

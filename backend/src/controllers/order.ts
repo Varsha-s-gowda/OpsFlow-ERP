@@ -7,8 +7,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       res.status(401).json({ success: false, message: 'Unauthorized' });
       return;
     }
-
-    // Only SALES user can create customer orders
     if ((req as any).user.role !== 'SALES') {
       res.status(403).json({ success: false, message: 'Forbidden: Only SALES role can create orders' });
       return;
@@ -23,15 +21,11 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
       res.status(409).json({ success: false, message: 'Order ID already exists' });
       return;
     }
-
-    // Normalize duplicate items
     const itemMap = new Map<string, number>();
     for (const item of items) {
       itemMap.set(item.itemId, (itemMap.get(item.itemId) || 0) + item.quantity);
     }
     const normalizedItems = Array.from(itemMap.entries()).map(([itemId, quantity]) => ({ itemId, quantity }));
-
-    // Verify all items exist
     for (const item of normalizedItems) {
       const itemRecord = await prisma.item.findUnique({ where: { id: item.itemId } });
       if (!itemRecord) {
@@ -39,15 +33,12 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
         return;
       }
     }
-
-    // Sort items by itemId to avoid deadlocks in PostgreSQL during transaction execution
     normalizedItems.sort((a, b) => a.itemId.localeCompare(b.itemId));
 
     let createdOrderWithDetails: any = null;
 
     await prisma.$transaction(async (tx) => {
       for (const item of normalizedItems) {
-        // Query current inventory records for this item in deterministic order
         const inventories = await tx.inventory.findMany({
           where: { itemId: item.itemId },
           orderBy: { id: 'asc' },
@@ -72,8 +63,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           if (av <= 0) continue;
 
           const toReserve = Math.min(av, remaining);
-
-          // Atomic conditional update checking that reservedQuantity + toReserve <= physicalQuantity
           const updatedRows = await tx.$executeRawUnsafe(
             `UPDATE "Inventory" SET "reservedQuantity" = "reservedQuantity" + $1 WHERE "id" = $2 AND "reservedQuantity" + $1 <= "physicalQuantity"`,
             toReserve,
@@ -91,8 +80,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           throw { status: 409, message: 'Failed to fully allocate reservation.' };
         }
       }
-
-      // Create CustomerOrder
       const order = await tx.customerOrder.create({
         data: {
           orderId,
@@ -100,8 +87,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           status: 'CONFIRMED',
         },
       });
-
-      // Create OrderItems
       for (const item of normalizedItems) {
         await tx.orderItem.create({
           data: {
@@ -111,8 +96,6 @@ export const createOrder = async (req: Request, res: Response, next: NextFunctio
           },
         });
       }
-
-      // Fetch the created order with relations
       createdOrderWithDetails = await tx.customerOrder.findUnique({
         where: { id: order.id },
         include: {

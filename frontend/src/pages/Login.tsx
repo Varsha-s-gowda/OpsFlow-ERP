@@ -38,8 +38,7 @@ export const Login: React.FC = () => {
 
   return (
     <div style={s.layout}>
-      {/* LEFT PANE */}
-      <div style={s.leftPane}>
+            <div style={s.leftPane}>
         <div style={s.logoBox}>
           <div style={s.logoIcon}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -64,8 +63,7 @@ export const Login: React.FC = () => {
         </div>
       </div>
 
-      {/* RIGHT PANE */}
-      <div style={s.rightPane}>
+            <div style={s.rightPane}>
         <div style={s.loginCard}>
           <h2 style={s.cardTitle}>Sign In</h2>
           <p style={s.cardSubtitle}>ENTER YOUR TERMINAL CREDENTIALS</p>

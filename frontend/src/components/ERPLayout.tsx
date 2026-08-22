@@ -50,8 +50,6 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
   ];
 
   const allowedItems = menuItems.filter(item => user && item.roles.includes(user.role));
-
-  // Role subtitle shown under brand name
   const roleLabel: Record<string, string> = {
     ADMIN: 'Admin Controls',
     OPERATIONS: 'Warehouse Control',
@@ -68,10 +66,8 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
         .header-icon-btn:hover { background: #f1f5f9 !important; }
       `}</style>
 
-      {/* ── Sidebar ── */}
-      <aside style={s.sidebar}>
-        {/* Brand */}
-        <div style={s.brand}>
+            <aside style={s.sidebar}>
+                <div style={s.brand}>
           <div style={s.brandIcon}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14M12 5l7 7-7 7" />
@@ -83,8 +79,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={s.nav}>
+                <nav style={s.nav}>
           {allowedItems.map((item, i) => {
             const active = location.pathname === item.path;
             return (
@@ -108,8 +103,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
           })}
         </nav>
 
-        {/* User section */}
-        {user && (
+                {user && (
           <div style={s.userSection}>
             <div style={s.userAvatar}>
               <User size={16} color="#334155" />
@@ -130,10 +124,8 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
         )}
       </aside>
 
-      {/* ── Main area ── */}
-      <div style={s.main}>
-        {/* Top header */}
-        <header style={s.header}>
+            <div style={s.main}>
+                <header style={s.header}>
           <div style={s.headerLeft}>
             <div style={s.breadcrumb}>
               <span style={s.breadHome}>Platform</span>
@@ -158,8 +150,7 @@ export const ERPLayout: React.FC<ERPLayoutProps> = ({ children, pageTitle }) => 
           </div>
         </header>
 
-        {/* Page content */}
-        <main style={s.content}>
+                <main style={s.content}>
           {children}
         </main>
       </div>
@@ -174,8 +165,6 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: '#f1f5f9',
     fontFamily: '"Inter", "Segoe UI", system-ui, sans-serif',
   },
-
-  // Sidebar
   sidebar: {
     width: 220,
     flexShrink: 0,
@@ -288,8 +277,6 @@ const s: Record<string, React.CSSProperties> = {
     transition: 'all 0.15s',
     flexShrink: 0,
   },
-
-  // Main area
   main: {
     marginLeft: 220,
     flex: 1,

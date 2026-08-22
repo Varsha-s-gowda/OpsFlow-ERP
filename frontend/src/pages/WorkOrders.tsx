@@ -13,12 +13,8 @@ export const WorkOrders: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
-
-  // Form State
   const [showAddForm, setShowAddForm] = useState(false);
   const [workOrderId, setWorkOrderId] = useState('');
   const [selectedItemId, setSelectedItemId] = useState('');
@@ -69,7 +65,6 @@ export const WorkOrders: React.FC = () => {
       });
       setSuccess('Work Order created successfully!');
       setShowAddForm(false);
-      // Reset form
       setWorkOrderId('');
       setSelectedItemId('');
       setSelectedLocationId('');
@@ -104,15 +99,11 @@ export const WorkOrders: React.FC = () => {
   }
 
   const isAdmin = user?.role === 'ADMIN';
-
-  // Live stock calculations
   const matchingInv = inventory.find(
     (inv: any) => inv.itemId === selectedItemId && inv.locationId === selectedLocationId
   );
   const availableStock = matchingInv ? (matchingInv.physicalQuantity - matchingInv.reservedQuantity) : 0;
   const expectedShortage = Math.max(requiredQuantity - availableStock, 0);
-
-  // Apply filters
   const filteredWorkOrders = workOrders.filter((wo: any) => {
     const matchesSearch =
       !searchTerm ||
@@ -127,8 +118,7 @@ export const WorkOrders: React.FC = () => {
   return (
     <ERPLayout pageTitle="Work Orders Control">
       <div style={styles.viewContainer}>
-        {/* Title Row */}
-        <div style={styles.titleRow}>
+                <div style={styles.titleRow}>
           <div>
             <p style={styles.subtitleText}>Plan and track operational assembly or warehouse work orders.</p>
           </div>
@@ -142,8 +132,7 @@ export const WorkOrders: React.FC = () => {
         {error && <div style={styles.errorBox}>{error}</div>}
         {success && <div style={styles.successBox}>{success}</div>}
 
-        {/* Filter Toolbar */}
-        <div style={styles.toolbar}>
+                <div style={styles.toolbar}>
           <div style={styles.searchBox}>
             <Search size={18} color="#64748b" style={{ marginRight: 8 }} />
             <input
@@ -181,8 +170,7 @@ export const WorkOrders: React.FC = () => {
           </div>
         </div>
 
-        {/* Create Work Order Side Form */}
-        {isAdmin && showAddForm && (
+                {isAdmin && showAddForm && (
           <div style={styles.formCard}>
             <h3 style={styles.cardTitle}>New Work Order Request</h3>
             <form onSubmit={handleCreateWorkOrder} style={styles.form}>
@@ -264,8 +252,7 @@ export const WorkOrders: React.FC = () => {
                   />
                 </div>
 
-                {/* Expected shortage live summary */}
-                <div style={{ ...styles.formGroupHalf, ...styles.stockPreview }}>
+                                <div style={{ ...styles.formGroupHalf, ...styles.stockPreview }}>
                   <div style={styles.previewLine}>
                     <span>Available Stock at Location:</span>
                     <strong style={{ color: availableStock > 0 ? '#34d399' : '#94a3b8' }}>
@@ -297,8 +284,7 @@ export const WorkOrders: React.FC = () => {
           </div>
         )}
 
-        {/* Ledger Panel */}
-        <div style={styles.card}>
+                <div style={styles.card}>
           {filteredWorkOrders.length === 0 ? (
             <div style={styles.emptyContainer}>
               <p style={styles.emptyText}>No work orders matching filters.</p>

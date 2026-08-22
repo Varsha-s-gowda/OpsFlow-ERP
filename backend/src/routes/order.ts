@@ -8,11 +8,7 @@ import { Role } from '@prisma/client';
 const router = Router();
 
 router.use(authenticate);
-
-// Route to create a customer order (SALES role only)
 router.post('/', authorizeRoles(Role.SALES), validateRequest(createOrderSchema), createOrder);
-
-// Routes to list or get specific customer orders (SALES or ADMIN)
 router.get('/', authorizeRoles(Role.SALES, Role.ADMIN), listOrders);
 router.get('/:id', authorizeRoles(Role.SALES, Role.ADMIN), getOrderById);
 

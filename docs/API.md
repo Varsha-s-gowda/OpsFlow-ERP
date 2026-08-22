@@ -1,238 +1,100 @@
-# OpsFlow ERP - API Documentation
+# API Documentation
 
-This document describes all active REST API endpoints supported by the OpsFlow ERP backend system, including access permissions, request bodies, and standard responses.
+The OpsFlow ERP backend exposes a RESTful JSON API. All protected endpoints require a Bearer token obtained via the `/auth/login` endpoint.
+
+Base URL: `http://localhost:5000/api` (Development)
 
 ---
 
 ## Authentication
 
-### Login
-Authenticates a user and returns a JSON Web Token (JWT) bearer token.
-* **Method**: `POST`
-* **Path**: `/api/auth/login`
-* **Authentication**: None
-* **Request Body**:
-  ```json
-  {
-    "email": "admin@opsflow.local",
-    "password": "OpsFlow@123"
-  }
-  ```
-* **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "token": "eyJhbGciOi...",
-      "user": {
-        "id": "user-uuid",
-        "name": "Admin User",
-        "email": "admin@opsflow.local",
-        "role": "ADMIN"
-      }
-    }
-  }
-  ```
-* **Errors**:
-  * `400 Bad Request` - Validation error (missing fields)
-  * `401 Unauthorized` - Invalid email or password
+### `POST /auth/login`
+Authenticates a user and returns a JWT.
+- **Body**: `{ "email": "admin@opsflow.com", "password": "password123" }`
+- **Response**: `{ "success": true, "data": { "token": "...", "user": { ... } } }`
 
-### Get Active Identity
-Returns the profile details of the currently authenticated session.
-* **Method**: `GET`
-* **Path**: `/api/auth/me`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: Any authenticated user
-* **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "user": {
-        "id": "user-uuid",
-        "name": "Admin User",
-        "email": "admin@opsflow.local",
-        "role": "ADMIN"
-      }
-    }
-  }
-  ```
+### `GET /auth/me`
+Fetches the profile of the currently authenticated user.
+- **Headers**: `Authorization: Bearer <token>`
+- **Response**: `{ "success": true, "data": { "user": { ... } } }`
 
 ---
 
-## Inventory Management
+## Inventory & Catalog
 
-### List All Inventory
-* **Method**: `GET`
-* **Path**: `/api/inventory`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "data": [
-      {
-        "id": "inventory-uuid",
-        "itemId": "item-uuid",
-        "locationId": "location-uuid",
-        "batchId": "batch-uuid",
-        "physicalQuantity": 100,
-        "reservedQuantity": 20,
-        "availableQuantity": 80,
-        "item": { "name": "Widget A", "sku": "W-A" },
-        "location": { "name": "Warehouse North" },
-        "batch": { "batchNumber": "B1" }
-      }
-    ]
-  }
-  ```
+### `GET /categories`
+Lists all item categories.
 
-### Get Inventory Record
-* **Method**: `GET`
-* **Path**: `/api/inventory/:id`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Success Response (200 OK)**:
-  ```json
-  {
-    "success": true,
-    "data": {
-      "id": "inventory-uuid",
-      "physicalQuantity": 100,
-      "reservedQuantity": 20,
-      "availableQuantity": 80
-    }
-  }
-  ```
+### `POST /categories`
+Creates a new category.
+- **Body**: `{ "name": "Electronics" }`
 
-### Create Stock Combination
-* **Method**: `POST`
-* **Path**: `/api/inventory`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Request Body**:
-  ```json
-  {
-    "itemId": "item-uuid",
-    "locationId": "location-uuid",
-    "batchId": "batch-uuid",
-    "physicalQuantity": 100,
-    "reservedQuantity": 0
-  }
-  ```
-* **Success Response (201 Created)**
+### `GET /items`
+Lists all items in the catalog.
 
-### Update Stock Level
-* **Method**: `PATCH`
-* **Path**: `/api/inventory/:id`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Request Body** (Both fields optional):
-  ```json
-  {
-    "physicalQuantity": 120,
-    "reservedQuantity": 10
-  }
-  ```
-* **Success Response (200 OK)**
+### `POST /items`
+Creates a new item.
+- **Body**: `{ "name": "Laptop", "sku": "001", "categoryId": "uuid" }`
+
+### `GET /batches`
+Lists all registered batches for items.
+
+### `POST /batches`
+Creates a new batch number for an item.
+- **Body**: `{ "batchNumber": "B-001", "itemId": "uuid" }`
+
+### `GET /locations`
+Lists all warehouse/storage locations.
+
+### `GET /inventory`
+Lists all current physical inventory quantities mapped by location and batch.
+
+### `POST /inventory`
+Creates a new physical stock record.
+- **Body**: `{ "itemId": "uuid", "locationId": "uuid", "batchId": "uuid", "physicalQuantity": 100, "reservedQuantity": 0 }`
+
+### `PATCH /inventory/:id`
+Updates quantities for a specific stock record.
+- **Body**: `{ "physicalQuantity": 90 }`
 
 ---
 
-## Work Orders
+## Operational Workflows
 
-### Create Work Order
-* **Method**: `POST`
-* **Path**: `/api/work-orders`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN` only
-* **Request Body**:
-  ```json
-  {
-    "workOrderId": "WO-1001",
-    "locationId": "location-uuid",
-    "itemId": "item-uuid",
-    "requiredQuantity": 50,
-    "assignedUserId": "user-uuid"
-  }
-  ```
-* **Success Response (201 Created)**
+### `GET /work-orders`
+Lists all manufacturing/processing work orders.
 
-### List Work Orders
-* **Method**: `GET`
-* **Path**: `/api/work-orders`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Success Response (200 OK)**: Includes calculated `shortage` (`max(requiredQuantity - availableQuantity, 0)`) and `availableQuantity`.
+### `POST /work-orders`
+Creates a new work order.
+- **Body**: `{ "itemId": "uuid", "locationId": "uuid", "requiredQuantity": 50, "assignedUserId": "uuid", "status": "ASSIGNED" }`
 
-### Advance Lifecycle Status
-* **Method**: `PATCH`
-* **Path**: `/api/work-orders/:id/status`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Request Body**:
-  ```json
-  {
-    "status": "IN_PROGRESS"
-  }
-  ```
-  *Permitted transitions: ASSIGNED → IN_PROGRESS → COMPLETED.*
+### `PATCH /work-orders/:id/status`
+Updates the status of a work order (e.g. to `COMPLETED`).
+- **Body**: `{ "status": "COMPLETED" }`
+
+### `GET /transfers`
+Lists all internal stock transfers between locations.
+
+### `POST /transfers`
+Initiates a new stock transfer.
+- **Body**: `{ "itemId": "uuid", "sourceLocationId": "uuid", "destinationLocationId": "uuid", "quantity": 25, "status": "REQUESTED" }`
+
+### `PATCH /transfers/:id/dispatch`
+Marks a transfer as dispatched (in-transit).
+
+### `PATCH /transfers/:id/receive`
+Marks a transfer as received and automatically updates destination inventory.
 
 ---
 
-## Internal Stock Transfers
+## Sales & Customers
 
-### Request Stock Transfer
-* **Method**: `POST`
-* **Path**: `/api/transfers`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-* **Request Body**:
-  ```json
-  {
-    "transferId": "TR-500",
-    "sourceLocationId": "source-loc-uuid",
-    "destinationLocationId": "dest-loc-uuid",
-    "itemId": "item-uuid",
-    "batchId": "batch-uuid",
-    "quantity": 30
-  }
-  ```
+### `GET /orders`
+Lists all outbound customer orders.
 
-### Dispatch Transfer (Locks Row & Decreases Source Stock)
-* **Method**: `PATCH`
-* **Path**: `/api/transfers/:id/dispatch`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
+### `POST /orders`
+Creates a new customer order and reserves inventory.
+- **Body**: `{ "orderId": "ORD-123", "status": "PENDING", "orderItems": [ { "itemId": "uuid", "quantity": 5 } ] }`
 
-### Receive Transfer (Locks Row & Increases Destination Stock)
-* **Method**: `PATCH`
-* **Path**: `/api/transfers/:id/receive`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `ADMIN`, `OPERATIONS`
-
----
-
-## Customer Orders
-
-### Create Customer Order
-* **Method**: `POST`
-* **Path**: `/api/orders`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `SALES` only
-* **Request Body**:
-  ```json
-  {
-    "orderId": "ORD-700",
-    "items": [
-      { "itemId": "item-uuid", "quantity": 10 }
-    ]
-  }
-  ```
-* **Success Response (201 Created)**: Returns order details and reserves quantity atomically.
-
-### List Customer Orders
-* **Method**: `GET`
-* **Path**: `/api/orders`
-* **Authentication**: Bearer JWT
-* **Allowed Roles**: `SALES`, `ADMIN`
+### `GET /orders/:id`
+Fetches a specific customer order including its child items.

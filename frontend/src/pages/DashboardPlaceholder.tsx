@@ -42,16 +42,12 @@ export const DashboardPlaceholder: React.FC = () => {
     try {
       const profile = await api.getMe();
       setUser(profile.data.user);
-
-      // Fetch lists for metrics calculation
       const role = profile.data.user.role;
 
       let inventoryList: any[] = [];
       let workOrdersList: any[] = [];
       let transfersList: any[] = [];
       let ordersList: any[] = [];
-
-      // Safe conditional fetching matching role visibility
       const fetches: Promise<any>[] = [];
       
       if (role === 'ADMIN' || role === 'OPERATIONS') {
@@ -64,13 +60,9 @@ export const DashboardPlaceholder: React.FC = () => {
       }
 
       await Promise.all(fetches);
-
-      // Calculate stock stats
       const totalInventory = inventoryList.reduce((acc, curr) => acc + curr.physicalQuantity, 0);
       const reservedStock = inventoryList.reduce((acc, curr) => acc + curr.reservedQuantity, 0);
       const availableStock = totalInventory - reservedStock;
-
-      // Filter lists
       const activeWorkOrders = workOrdersList.filter(wo => wo.status !== 'COMPLETED').length;
       const pendingTransfers = transfersList.filter(tr => tr.status !== 'RECEIVED').length;
       const pendingCustomerOrders = ordersList.filter(o => o.status === 'CONFIRMED').length;
@@ -83,16 +75,12 @@ export const DashboardPlaceholder: React.FC = () => {
         pendingTransfers,
         pendingCustomerOrders
       });
-
-      // Filter low stock
       const lowStock = inventoryList.filter(inv => (inv.physicalQuantity - inv.reservedQuantity) < 15);
       setLowStockItems(lowStock.slice(0, 5));
 
       setRecentWorkOrders(workOrdersList.slice(0, 5));
       setRecentTransfers(transfersList.slice(0, 5));
       setRecentOrders(ordersList.slice(0, 5));
-
-      // Bar Chart Data: Top 5 items
       const barData = inventoryList
         .map(inv => ({
           name: (inv.item?.name || 'Unknown').substring(0, 12),
@@ -101,29 +89,21 @@ export const DashboardPlaceholder: React.FC = () => {
         .sort((a, b) => b.quantity - a.quantity)
         .slice(0, 5);
       setStockChartData(barData);
-
-      // Pie Chart Data: Work Orders
       const woStatuses: Record<string, number> = {};
       workOrdersList.forEach(wo => {
         woStatuses[wo.status] = (woStatuses[wo.status] || 0) + 1;
       });
       setWoPieData(Object.keys(woStatuses).map(k => ({ name: k, value: woStatuses[k] })));
-
-      // Pie Chart Data: Customer Orders
       const orderStatuses: Record<string, number> = {};
       ordersList.forEach(o => {
         orderStatuses[o.status] = (orderStatuses[o.status] || 0) + 1;
       });
       setOrderPieData(Object.keys(orderStatuses).map(k => ({ name: k, value: orderStatuses[k] })));
-
-      // Pie Chart Data: Transfer Statuses
       const transferStatuses: Record<string, number> = {};
       transfersList.forEach(tr => {
         transferStatuses[tr.status] = (transferStatuses[tr.status] || 0) + 1;
       });
       setTransferPieData(Object.keys(transferStatuses).map(k => ({ name: k, value: transferStatuses[k] })));
-
-      // Bar Chart Data: Inventory by Location
       const locationStock: Record<string, number> = {};
       inventoryList.forEach(inv => {
         const locName = inv.location?.name || 'Unknown';
@@ -158,8 +138,7 @@ export const DashboardPlaceholder: React.FC = () => {
   return (
     <ERPLayout pageTitle={dashboardTitle}>
       <div style={styles.dashboardContainer}>
-        {/* Welcome Section */}
-        <div style={styles.welcomeBanner}>
+                <div style={styles.welcomeBanner}>
           <div>
             <h3 style={styles.welcomeTitle}>Welcome back, {user?.name}</h3>
             <p style={styles.welcomeSub}>
@@ -172,10 +151,8 @@ export const DashboardPlaceholder: React.FC = () => {
           </div>
         </div>
 
-        {/* Dashboard KPI Grid */}
-        <div style={styles.kpiGrid}>
-          {/* Card 1: Total Inventory */}
-          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                <div style={styles.kpiGrid}>
+                    {(role === 'ADMIN' || role === 'OPERATIONS') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Total Physical Stock</span>
@@ -189,8 +166,7 @@ export const DashboardPlaceholder: React.FC = () => {
             </div>
           )}
 
-          {/* Card 2: Available Stock */}
-          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                    {(role === 'ADMIN' || role === 'OPERATIONS') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Available Stock</span>
@@ -203,8 +179,7 @@ export const DashboardPlaceholder: React.FC = () => {
             </div>
           )}
 
-          {/* Card 3: Reserved Stock */}
-          {(role === 'ADMIN' || role === 'OPERATIONS' || role === 'SALES') && (
+                    {(role === 'ADMIN' || role === 'OPERATIONS' || role === 'SALES') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Reserved Stock</span>
@@ -217,8 +192,7 @@ export const DashboardPlaceholder: React.FC = () => {
             </div>
           )}
 
-          {/* Card 4: Active Work Orders */}
-          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                    {(role === 'ADMIN' || role === 'OPERATIONS') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Active Work Orders</span>
@@ -231,8 +205,7 @@ export const DashboardPlaceholder: React.FC = () => {
             </div>
           )}
 
-          {/* Card 5: Pending Transfers */}
-          {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                    {(role === 'ADMIN' || role === 'OPERATIONS') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Pending Stock Transfers</span>
@@ -245,8 +218,7 @@ export const DashboardPlaceholder: React.FC = () => {
             </div>
           )}
 
-          {/* Card 6: Pending Customer Orders */}
-          {(role === 'ADMIN' || role === 'SALES') && (
+                    {(role === 'ADMIN' || role === 'SALES') && (
             <div style={styles.kpiCard}>
               <div style={styles.kpiHeader}>
                 <span style={styles.kpiLabel}>Confirmed Orders</span>
@@ -260,12 +232,9 @@ export const DashboardPlaceholder: React.FC = () => {
           )}
         </div>
 
-        {/* Dashboard Panels */}
-        <div style={styles.panelsGrid}>
-          {/* Left / Primary Column */}
-          <div style={styles.panelsColPrimary}>
-            {/* Recent Work Orders (Admin/Operations) */}
-            {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                <div style={styles.panelsGrid}>
+                    <div style={styles.panelsColPrimary}>
+                        {(role === 'ADMIN' || role === 'OPERATIONS') && (
               <div style={styles.panelCard}>
                 <div style={styles.panelHeader}>
                   <h4 style={styles.panelTitle}>Active Work Orders</h4>
@@ -308,8 +277,7 @@ export const DashboardPlaceholder: React.FC = () => {
               </div>
             )}
 
-            {/* Recent Stock Transfers (Admin/Operations) */}
-            {(role === 'ADMIN' || role === 'OPERATIONS') && (
+                        {(role === 'ADMIN' || role === 'OPERATIONS') && (
               <div style={styles.panelCard}>
                 <div style={styles.panelHeader}>
                   <h4 style={styles.panelTitle}>Stock Transfers</h4>
@@ -348,8 +316,7 @@ export const DashboardPlaceholder: React.FC = () => {
               </div>
             )}
 
-            {/* Recent Orders (Admin/Sales) */}
-            {(role === 'ADMIN' || role === 'SALES') && (
+                        {(role === 'ADMIN' || role === 'SALES') && (
               <div style={styles.panelCard}>
                 <div style={styles.panelHeader}>
                   <h4 style={styles.panelTitle}>Recent Customer Orders</h4>
@@ -389,8 +356,7 @@ export const DashboardPlaceholder: React.FC = () => {
             )}
           </div>
 
-          {/* Right / Secondary Column - Graphical Analysis */}
-          <div style={styles.panelsColSecondary}>
+                    <div style={styles.panelsColSecondary}>
             {(role === 'ADMIN' || role === 'OPERATIONS') && (
               <div style={styles.panelCard}>
                 <div style={styles.panelHeader}>
@@ -440,8 +406,7 @@ export const DashboardPlaceholder: React.FC = () => {
           </div>
         </div>
 
-        {/* Bottom Graph Row */}
-        <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           {(role === 'ADMIN' || role === 'OPERATIONS') && (
             <div style={{ ...styles.panelCard, flex: '1 1 400px' }}>
               <div style={styles.panelHeader}>

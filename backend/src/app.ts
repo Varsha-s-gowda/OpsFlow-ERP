@@ -16,15 +16,11 @@ app.use(cors({
 }));
 
 app.use(express.json());
-
-// Routes
 app.use('/api', routes);
 app.use('/api/inventory', inventoryRoutes);
 app.use('/api/work-orders', workOrderRoutes);
 app.use('/api/transfers', transferRoutes);
 app.use('/api/orders', orderRoutes);
-
-// Centralized Error Handling
 app.use(errorHandler);
 
 export default app;
